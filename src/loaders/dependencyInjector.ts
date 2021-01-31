@@ -1,4 +1,5 @@
 import { Container } from 'typedi'
+import AxiosInstance from 'axios'
 import LoggerInstance from './logger'
 
 export default ({ mongoConnection, models }: { mongoConnection; models: { name: string; model: any }[] }) => {
@@ -10,6 +11,8 @@ export default ({ mongoConnection, models }: { mongoConnection; models: { name: 
         // const agendaInstance = agendaFactory({ mongoConnection })
 
         Container.set('logger', LoggerInstance)
+
+        Container.set('axios', AxiosInstance)
         
         // LoggerInstance.info('Agenda injectedinto container')
         LoggerInstance.info('Dependencies injected')

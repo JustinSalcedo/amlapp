@@ -17,5 +17,11 @@ export default {
     },
     api: {
         prefix: '/api'
+    },
+    mlAPI: {
+        url: process.env.ML_API_URI,
+        list: {
+            url: process.env.ML_API_LIST_PREFIX
+        }
     }
 }
