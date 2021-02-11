@@ -6,7 +6,6 @@ import config from '../../config'
 @Service()
 export default class ListService {
     constructor(
-        @Inject('itemModel') private itemModel: Models.ItemModel,
         @Inject('axios') private axios: AxiosInstance
     ) {}
 

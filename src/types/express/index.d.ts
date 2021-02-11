@@ -11,6 +11,5 @@ declare global {
 
     namespace Models {
         export type UserModel = Model<IUser & Document>
-        export type ItemModel = IItem
     }
 }

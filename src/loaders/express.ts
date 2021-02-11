@@ -2,6 +2,7 @@ import express from 'express'
 import bodyParser from 'body-parser'
 import cors from 'cors'
 import routes from '../api'
+import mlAuth from '../api/routes/ml/'
 import config from '../config'
 
 export default ({ app }: { app: express.Application }) => {
@@ -22,6 +23,8 @@ export default ({ app }: { app: express.Application }) => {
     app.use(bodyParser.json())
 
     app.use(config.api.prefix, routes())
+
+    app.use(config.mlAPI.redirect.prefix, mlAuth())
 
     app.use((req, res, next) => {
         const err = new Error('Not Found')

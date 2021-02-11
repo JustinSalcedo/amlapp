@@ -20,8 +20,18 @@ export default {
     },
     mlAPI: {
         url: process.env.ML_API_URI,
+        redirect: {
+            url: 'https://amlapp.justinsalcedo.com',
+            prefix: '/ml'
+        },
+        appID: process.env.ML_APP_ID,
+        auth: {
+            url: process.env.ML_API_AUTH_PREFIX
+        },
         list: {
             url: process.env.ML_API_LIST_PREFIX
-        }
+        },
+        accessUrl: process.env.ML_AUTH_URI,
+        secret: process.env.ML_APP_SECRET
     }
 }

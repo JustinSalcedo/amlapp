@@ -1,4 +1,4 @@
-import { Router, Request, Response, NextFunction, response } from 'express'
+import { Router, Request, Response, NextFunction } from 'express'
 import { Container } from 'typedi'
 import AuthService from '../../services/auth'
 import { IUserInputDTO } from '../../interfaces/IUser'
