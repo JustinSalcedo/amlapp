@@ -1,14 +1,15 @@
+import { celebrate } from 'celebrate'
 import { Router, Request, Response, NextFunction } from 'express'
+import Joi from 'joi'
 import { Container } from 'typedi'
 import { Logger } from 'winston'
 import MLAuthService from '../../../services/mercado-libre/auth'
+import middleware from '../../middlewares'
 
 const route =  Router()
 
 export default (app: Router) => {
     app.use('', route)
-
-    const mLAuthServiceInstance = Container.get(MLAuthService)
 
     route.get(
         '/auth',
@@ -17,11 +18,13 @@ export default (app: Router) => {
             logger.debug('Getting access token with authorization code')
             
             try {
+                const mLAuthServiceInstance = Container.get(MLAuthService)
+                
                 const accessCode = req.query.code
                 const encodedUrl = req.query.state
 
                 const { 
-                    // generatedToken,
+                    generatedToken,
                     originUrl
                 } = await mLAuthServiceInstance.GetAccessToken(accessCode as string, encodedUrl as string)
                 return res.redirect(200, originUrl)
@@ -33,15 +36,24 @@ export default (app: Router) => {
 
     route.get(
         '/access',
+        celebrate({
+            query: Joi.object({
+                origin_url: Joi.string().required()
+            })
+        }),
+        middleware.isAuth,
+        middleware.attachCurrentUser,
         async (req: Request, res: Response, next: NextFunction) => {
             const logger: Logger = Container.get('logger')
             logger.debug('Catching origin url and generating random number')
             
             try {
-                const originUrl = req.protocol + '://' + req.get('host') + req.originalUrl
+                const mLAuthServiceInstance = Container.get(MLAuthService)
+
+                const originUrl = req.query.origin_url
                 logger.debug('Origin URL is: ' + originUrl)
-                const redirectUrl = await mLAuthServiceInstance.RedirectAuth(originUrl)
-                return res.redirect(301, redirectUrl)
+                const redirectUrl = await mLAuthServiceInstance.RedirectAuth(originUrl as string, req.currentUser)
+                return res.status(200).json({ redirectUrl })
             } catch (e) {
                 logger.error(e)
                 next(e)

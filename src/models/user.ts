@@ -23,6 +23,39 @@ const User = new mongoose.Schema(
         role: {
           type: String,
           default: 'user'
+        },
+
+        redirect_urls: {
+          ml_access: {
+            type: String
+          },
+
+          rapid_access: {
+            type: String
+          }
+        },
+
+        config: {
+          ml_token: {
+            access_token: {
+              type: String
+            },
+            token_type: {
+              type: String
+            },
+            expires_in: {
+              type: Number
+            },
+            scope: {
+              type: String
+            },
+            user_id: {
+              type: Number
+            },
+            refresh_token: {
+              type: String
+            }
+          }
         }
     },
     { timestamps: true }
