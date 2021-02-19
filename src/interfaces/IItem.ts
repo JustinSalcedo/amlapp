@@ -81,7 +81,7 @@ export interface IItem {
         id: string
     }[],
     accepts_mercadopago: boolean,
-    non_mercado_pago_payment_methods: any[],
+    // non_mercado_pago_payment_methods: any[],
     shipping: {
         mode: string,
         local_pick_up: boolean,
@@ -115,7 +115,7 @@ export interface IItem {
         latitude: number,
         longitude: number
     },
-    coverage_areas: any[],
+    // coverage_areas: any[],
     attributes: {
         id: string,
         name: string,
@@ -126,7 +126,7 @@ export interface IItem {
         attribute_group_id: string,
         attribute_group_name: string
     },
-    warnings: any[],
+    // warnings: any[],
     listing_source: string,
     variations: any[],
     thumbnail: string,

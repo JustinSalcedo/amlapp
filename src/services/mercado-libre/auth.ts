@@ -1,12 +1,11 @@
 import { Service, Inject } from 'typedi'
 import { AxiosInstance, AxiosRequestConfig } from 'axios'
-import { randomBytes } from 'crypto'
-import argon2 from 'argon2'
 import { Logger } from 'winston'
 import { IUser } from '../../interfaces/IUser'
 import IMLToken from '../../interfaces/IMLToken'
+import { EventDispatcher } from '../../decorators/eventDispatcher'
 import config from '../../config'
-import user from '../../api/routes/user'
+import events from '../../subscribers/events'
 
 @Service()
 export default class MLAuthService {
@@ -15,7 +14,8 @@ export default class MLAuthService {
     constructor (
         @Inject('userModel') private userModel: Models.UserModel,
         @Inject('axios') private axios: AxiosInstance,
-        @Inject('logger') private logger: Logger
+        @Inject('logger') private logger: Logger,
+        @EventDispatcher() private eventDispatcher
     ) {}
     
     public async GetAccessToken(accessCode: string, encodedUrl: string): Promise<{ generatedToken: IMLToken, originUrl: string }> {
@@ -42,8 +42,6 @@ export default class MLAuthService {
         const encodedUrlArray = encodedUrl.split('/')
 
         const userId = encodedUrlArray[encodedUrlArray.length - 2]
-        // this.logger.silly('The userId is ' + userId)
-        // this.logger.silly('The encodedUrl is ' + encodedUrl)
 
         const userRecord: IUser = await this.userModel.findById(userId)
         
@@ -52,6 +50,7 @@ export default class MLAuthService {
             const response = await this.axios(requestConfig)
             this.logger.silly('Generating token')
             const generatedToken: IMLToken = response.data
+            this.eventDispatcher.dispatch(events.user.mlAuth, { currentUser: userRecord, mlToken: generatedToken })
 
             const randomEntry = encodedUrlArray[encodedUrlArray.length - 1]
             const originUrl = encodedUrl.replace(`${userId}/${randomEntry}`, '')

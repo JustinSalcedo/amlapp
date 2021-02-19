@@ -56,6 +56,10 @@ const User = new mongoose.Schema(
               type: String
             }
           }
+        },
+
+        ml_account: {
+          type: Object
         }
     },
     { timestamps: true }

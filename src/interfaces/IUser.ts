@@ -13,6 +13,7 @@ export interface IUser {
     config: {
         ml_token: IMLToken
     }
+    ml_account: any
 }
 
 export interface IUserInputDTO {

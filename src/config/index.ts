@@ -28,9 +28,6 @@ export default {
         auth: {
             url: process.env.ML_API_AUTH_PREFIX
         },
-        list: {
-            url: process.env.ML_API_LIST_PREFIX
-        },
         accessUrl: process.env.ML_AUTH_URI,
         secret: process.env.ML_APP_SECRET
     }

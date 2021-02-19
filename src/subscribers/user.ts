@@ -4,6 +4,9 @@ import events from './events'
 import { IUser } from '../interfaces/IUser'
 import mongoose from 'mongoose'
 import { Logger } from 'winston'
+import { AxiosInstance, AxiosRequestConfig } from 'axios'
+import IMLToken from '../interfaces/IMLToken'
+import config from '../config'
 
 @EventSubscriber()
 export default class UserSubscriber {
@@ -32,6 +35,38 @@ export default class UserSubscriber {
             Logger.error(`Error on event ${events.user.signUp}: %o`, e)
 
             throw e
+        }
+    }
+
+    @On(events.user.mlAuth)
+    public async onUserMLAuth({ currentUser, mlToken }: { currentUser: Partial<IUser>, mlToken: IMLToken }) {
+        const Logger: Logger = Container.get('logger')
+
+        try {
+            Logger.silly('ML authorization granted')
+            Logger.debug('We got currentUser as \n%o\n and mlToken as \n%o\n', currentUser, mlToken)
+
+            const Axios: AxiosInstance = Container.get('axios')
+            const requestMethod = 'get'
+            const requestConfig: AxiosRequestConfig = {
+                url: '/users/me',
+                method: requestMethod,
+                baseURL: config.mlAPI.url,
+                headers: {
+                    'Authorization': `Bearer ${mlToken.access_token}`,
+                }
+            }
+
+            const response = await Axios(requestConfig)
+            const UserModel = Container.get('userModel') as Models.UserModel
+            await UserModel.findByIdAndUpdate(currentUser._id, { $set: {
+                config: { ...currentUser.config, ml_token: mlToken },
+                ml_account: response.data
+            } })
+
+        } catch (error) {
+            Logger.error(`Error on event ${events.user.signUp}: %o`, error)
+            throw error
         }
     }
 }

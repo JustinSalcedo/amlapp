@@ -1,6 +1,7 @@
 export default {
     user: {
         signUp: 'onUserSignUp',
-        signIn: 'onUserSignIn'
+        signIn: 'onUserSignIn',
+        mlAuth: 'onMLAuth'
     }
 }
