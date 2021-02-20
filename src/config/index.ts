@@ -30,5 +30,10 @@ export default {
         },
         accessUrl: process.env.ML_AUTH_URI,
         secret: process.env.ML_APP_SECRET
+    },
+    agenda: {
+        dbCollection: process.env.AGENDA_DB_COLLECTION,
+        pooltime: process.env.AGENDA_POOL_TIME,
+        concurrency: parseInt(process.env.AGENDA_CONCURRENCY, 10)
     }
 }

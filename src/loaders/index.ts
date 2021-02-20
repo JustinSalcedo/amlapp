@@ -1,6 +1,7 @@
 import expressLoader from './express'
 import dependencyInjector from './dependencyInjector'
 import mongooseLoader from './mongoose'
+import jobsLoader from './jobs'
 import Logger from './logger'
 import './events'
 
@@ -13,14 +14,18 @@ export default async ({ expressApp }) => {
         model: require('../models/user').default
     }
 
-    await dependencyInjector({
+    const { agenda } = dependencyInjector({
         mongoConnection,
         models: [
             userModel
         ]
     })
+
     Logger.info('Dependency Injector loaded')
 
-    await expressLoader({ app: expressApp })
+    jobsLoader({ agenda })
+    Logger.info('Jobs loaded')
+
+    expressLoader({ app: expressApp })
     Logger.info('Express loaded')
 }
