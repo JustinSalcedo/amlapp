@@ -6,6 +6,7 @@ import IMLToken from '../../interfaces/IMLToken'
 import { EventDispatcher } from '../../decorators/eventDispatcher'
 import config from '../../config'
 import events from '../../subscribers/events'
+import LoggerInstance from '../../loaders/logger'
 
 @Service()
 export default class MLAuthService {
@@ -71,5 +72,44 @@ export default class MLAuthService {
         const redirectUrl = config.mlAPI.redirect.url + config.mlAPI.redirect.prefix + '/auth'
 
         return `${authUrl}?response_type=code&client_id=${appID}&state=${verifiedUrl}&redirect_uri=${redirectUrl}`
+    }
+
+    public async RefreshTokens(): Promise<void> {
+        const authUsers: Partial<IUser[]> = await this.userModel.where('config.ml_token').ne(null).select('_id config')
+        authUsers.forEach(async (element) => {
+            const updatedDate = new Date(element.config.ml_access_date.toString())
+            const preventiveTime = 900 // 15 minutes in seconds
+            const expirationDate = new Date(updatedDate.getTime() + (element.config.ml_token.expires_in - preventiveTime) * 1000)
+            if (expirationDate <= new Date()) {
+                try {
+                    this.logger.silly('Refreshing token for user %s', element._id)
+
+                    const requestMethod = 'post'
+                    const requestConfig: AxiosRequestConfig = {
+                        url: config.mlAPI.auth.url,
+                        method: requestMethod,
+                        baseURL: config.mlAPI.url,
+                        headers: {
+                            'Accept': 'application/json',
+                            'Content-Type': 'application/x-www-form-urlencoded'
+                        },
+                        data: 'grant_type=refresh_token'
+                            + '&client_id=' + config.mlAPI.appID
+                            + '&client_secret=' + config.mlAPI.secret
+                            + '&refresh_token=' + element.config.ml_token.refresh_token
+                    }
+    
+                    const response: { data: IMLToken } = await this.axios(requestConfig)
+                    await this.userModel.findByIdAndUpdate(element._id, { $set: {
+                        config: { ...element.config, ml_token: response.data, ml_access_date: new Date() }
+                    } })
+                    
+                    this.logger.debug('Here is the response data: \n%o\n', response.data)
+
+                } catch (error) {
+                    this.logger.error(error)
+                }
+            }
+        });
     }
 }

@@ -60,6 +60,23 @@ export default (app: Router) => {
             }
         }
     )
+
+    route.get(
+        '/refresh',
+        async (req: Request, res: Response, next: NextFunction) => {
+            const logger: Logger = Container.get('logger')
+            logger.debug('Catching origin url and generating random number')
+            
+            try {
+                const mLAuthServiceInstance = Container.get(MLAuthService)
+                await mLAuthServiceInstance.RefreshTokens()
+                res.status(200).json({ message: 'Yesssss' })
+            } catch (error) {
+                logger.error(error)
+                next(error)
+            }
+        }
+    )
     
     return app
 }

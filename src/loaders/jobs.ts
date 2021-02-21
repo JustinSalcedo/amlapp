@@ -1,17 +1,21 @@
 import { Container } from 'typedi'
 import config from '../config'
 import Agenda from 'agenda'
-import TokenRefresherJob from '../jobs/tokenRefresher'
+import MLTokenRefresherJob from '../jobs/mlTokenRefresher'
 
 export default ({ agenda }: { agenda: Agenda }) => {
     agenda.define(
-        'refresh-token',
+        'refresh-mltokens',
         { priority: 'high', concurrency: config.agenda.concurrency },
         async (job, done) => {
-            const tokenRefresherJobInstance = Container.get(TokenRefresherJob)
+            const tokenRefresherJobInstance = Container.get(MLTokenRefresherJob)
             return tokenRefresherJobInstance.handler(job, done)
         }
-    )
+    );
 
-    agenda.start()
+    (async () => {
+        await agenda.start()
+
+        await agenda.every('15 minutes', 'refresh-mltokens')
+    })()
 }

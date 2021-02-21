@@ -9,12 +9,6 @@ declare global {
         }
     }
 
-    namespace Agenda {
-        export interface JobAttributesData {
-            currentUser: IUser & Document
-        }
-    }
-
     namespace Models {
         export type UserModel = Model<IUser & Document>
     }

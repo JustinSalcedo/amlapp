@@ -55,6 +55,10 @@ const User = new mongoose.Schema(
             refresh_token: {
               type: String
             }
+          },
+
+          ml_access_date: {
+            type: Date
           }
         },
 

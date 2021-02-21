@@ -12,8 +12,11 @@ export interface IUser {
     }
     config: {
         ml_token: IMLToken
+        ml_access_date: Date
     }
     ml_account: any
+    createdAt: Date
+    updatedAt: Date
 }
 
 export interface IUserInputDTO {

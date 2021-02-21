@@ -60,7 +60,7 @@ export default class UserSubscriber {
             const response = await Axios(requestConfig)
             const UserModel = Container.get('userModel') as Models.UserModel
             await UserModel.findByIdAndUpdate(currentUser._id, { $set: {
-                config: { ...currentUser.config, ml_token: mlToken },
+                config: { ...currentUser.config, ml_token: mlToken, ml_access_date: new Date() },
                 ml_account: response.data
             } })
 
