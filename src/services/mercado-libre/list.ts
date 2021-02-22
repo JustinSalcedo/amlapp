@@ -1,7 +1,7 @@
 import { Service, Inject } from 'typedi'
 import { AxiosInstance, AxiosPromise, AxiosRequestConfig } from 'axios'
 import { Logger } from 'winston'
-import { IItem, IItemInputDTO } from '../../interfaces/IItem'
+import { IMLItem, IMLItemInputDTO } from '../../interfaces/IMLItem'
 import { ISellerItem, ISellerItemDTO } from '../../interfaces/ISellerItems'
 import { IUser } from '../../interfaces/IUser'
 import config from '../../config'
@@ -13,7 +13,7 @@ export default class ListService {
         @Inject('logger') private logger: Logger
     ) { }
 
-    public async GetItemDetails(itemId: string, currentUser: IUser): Promise<IItem> {
+    public async GetItemDetails(itemId: string, currentUser: IUser): Promise<IMLItem> {
         const requestMethod = 'get'
         const requestConfig: AxiosRequestConfig = {
             url: `/items/${itemId}`,
@@ -32,7 +32,7 @@ export default class ListService {
         }
     }
 
-    public async GetItemsDetails(itemIds: string[], currentUser: Partial<IUser>): Promise<IItem[]> {
+    public async GetItemsDetails(itemIds: string[], currentUser: Partial<IUser>): Promise<IMLItem[]> {
         const ids = itemIds.join(',')
         const requestMethod = 'get'
         const requestConfig: AxiosRequestConfig = {
@@ -59,7 +59,7 @@ export default class ListService {
         }
     }
 
-    public async AddItem(itemInputDTO: Partial<IItemInputDTO>, currentUser: Partial<IUser>): Promise<Partial<IItem>> {
+    public async AddItem(itemInputDTO: Partial<IMLItemInputDTO>, currentUser: Partial<IUser>): Promise<Partial<IMLItem>> {
         this.logger.debug('Adding item with input \n%o\n and user as \n%o\n', itemInputDTO, currentUser)
         
         const requestMethod = 'post'
@@ -128,7 +128,7 @@ export default class ListService {
         }
     }
 
-    public async GetItemsDetailsBySeller(currentUser: Partial<IUser>, { status, sellerSKU }: Partial<{ status: string, sellerSKU: string }>): Promise<IItem[]> {
+    public async GetItemsDetailsBySeller(currentUser: Partial<IUser>, { status, sellerSKU }: Partial<{ status: string, sellerSKU: string }>): Promise<IMLItem[]> {
         this.logger.debug(`Getting items details by seller with ID ${currentUser.config.ml_token.user_id}`)
 
         try {

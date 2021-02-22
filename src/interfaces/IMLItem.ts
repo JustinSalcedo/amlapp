@@ -1,4 +1,4 @@
-interface attribute {
+interface attributeInput {
     id: string,
     value_name: string
 }
@@ -8,10 +8,51 @@ interface location {
     name: string
 }
 
-export interface IItemInputDTO {
+interface variationInput {
+    attribute_combinations: {
+        name: string
+        value_id: string | undefined
+        value_name: string | undefined
+    }[]
+    price: number
+    available_quantity: number
+    attributes: attributeInput[]
+    sold_quantity: number
+    seller_custom_field: string | undefined
+    picture_ids: string[]
+}
+
+interface attribute {
+    id: string
+    name: string
+    value_id: string | null
+    value_name: string
+}
+
+interface variation {
+    id: number
+    attribute_combinations: {
+        id: string
+        name: string
+        value_id: string | undefined
+        value_name: string | undefined
+    }[]
+    price: number
+    available_quantity: number
+    attributes: attribute[]
+    sold_quantity: number
+    seller_custom_field: string | null
+    catalog_product_id: string | null
+    picture_ids: string[]
+}
+
+export interface IMLItemInputDTO {
     title: string,
+    subtitle: string | undefined ////
     category_id: string,
     price: number,
+    variations: variationInput[] | undefined  ////
+    official_store_id: number | undefined   ////
     currency_id: string,
     available_quantity: number,
     buying_mode: string,
@@ -20,16 +61,16 @@ export interface IItemInputDTO {
     description: {
         plain_text: string
     },
-    video_id: string,
+    video_id: string,   //// Default: "YOUTUBE_ID_HERE"
     tags: string[],
-    sale_terms: attribute[],
+    sale_terms: attributeInput[],
     pictures: {
         source: string
     }[],
-    attributes: attribute[],
+    attributes: attributeInput[],
 }
 
-export interface IItem {
+export interface IMLItem {
     id: string,
     site_id: string,
     title: string,
@@ -68,14 +109,14 @@ export interface IItem {
     expiration_time: string,
     condition: string,
     permalink: string,
-    pictures: {
+    pictures: { ////
         id: string,
         url: string,
         secure_url: string,
         size: string,
         max_size: string,
         quality: string
-    },
+    }[],
     video_id: string | null,
     descriptions: {
         id: string
@@ -128,7 +169,7 @@ export interface IItem {
     },
     // warnings: any[],
     listing_source: string,
-    variations: any[],
+    variations: variation[],    ////
     thumbnail: string,
     secure_thumbnail: string,
     status: string,

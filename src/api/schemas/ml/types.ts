@@ -7,7 +7,7 @@ import {
     GraphQLFloat,
     GraphQLNonNull,
     GraphQLInputObjectType,
-    GraphQLUnionType
+    GraphQLScalarType
 } from 'graphql'
 
 const StructType = new GraphQLObjectType({
@@ -49,6 +49,7 @@ const VariationType = new GraphQLObjectType({
         sold_quantity: { type: GraphQLInt },
         sale_terms: { type: new GraphQLList(ValueType) },
         picture_ids: { type: new GraphQLList(GraphQLString) },
+        seller_custom_field: { type: GraphQLString },
         catalog_product_id: { type: GraphQLString }
     }
 })
@@ -237,12 +238,37 @@ const DescriptionInputType = new GraphQLInputObjectType({
     }
 })
 
+const AttributeCombinationInputType = new GraphQLInputObjectType({
+    name: 'AttributeCombinationInputType',
+    fields: {
+        name: { type: new GraphQLNonNull(GraphQLString) },
+        value_id: { type: GraphQLString },
+        value_name: { type: GraphQLString }
+    }
+})
+
+const VariationInputType = new GraphQLInputObjectType({
+    name: 'VariationInputType',
+    fields: {
+        attribute_combinations: { type: new GraphQLNonNull(new GraphQLList(AttributeCombinationInputType)) },
+        price: { type: new GraphQLNonNull(GraphQLInt) },
+        available_quantity: { type: new GraphQLNonNull(GraphQLInt) },
+        attributes: { type: new GraphQLNonNull(new GraphQLList(AttributeInputType)) },
+        sold_quantity: { type: new GraphQLNonNull(GraphQLInt) },
+        seller_custom_field: { type: GraphQLString },
+        picture_ids: { type: new GraphQLNonNull(new GraphQLList(GraphQLString)) },
+    }
+})
+
 const ItemInputType = new GraphQLInputObjectType({
     name: 'ItemInputType',
     fields: {
         title: { type: new GraphQLNonNull(GraphQLString) },
+        subtitle: { type: GraphQLString },
         category_id: { type: new GraphQLNonNull(GraphQLString) },
         price: { type: new GraphQLNonNull(GraphQLInt) },
+        variations: { type: new GraphQLList(VariationInputType) },
+        official_store_id: { type: GraphQLInt },
         currency_id: { type: new GraphQLNonNull(GraphQLString) },
         available_quantity: { type: new GraphQLNonNull(GraphQLInt) },
         buying_mode: { type: new GraphQLNonNull(GraphQLString) },
