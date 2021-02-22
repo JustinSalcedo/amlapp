@@ -32,11 +32,11 @@ export default class ListService {
         }
     }
 
-    public async GetItemsDetails(itemIds: string[], currentUser: IUser): Promise<IItem[]> {
+    public async GetItemsDetails(itemIds: string[], currentUser: Partial<IUser>): Promise<IItem[]> {
         const ids = itemIds.join(',')
         const requestMethod = 'get'
         const requestConfig: AxiosRequestConfig = {
-            url: `/items/${ids}`,
+            url: `/items?ids=${ids}`,
             method: requestMethod,
             baseURL: config.mlAPI.url,
             headers: {
@@ -46,7 +46,14 @@ export default class ListService {
 
         try {
             const response = await this.axios(requestConfig)
-            return response.data
+            const itemsDetails = response.data.map(element => {
+                if (element.code === 200) {
+                    return element.body
+                }
+            })
+
+            return itemsDetails
+            
         } catch (error) {
             throw error
         }
@@ -75,14 +82,19 @@ export default class ListService {
     }
 
     public async GetItemsBySeller(currentUser: Partial<IUser>, { status, sellerSKU }: Partial<{ status: string, sellerSKU: string }>): Promise<ISellerItem> {
-        this.logger.debug(`Getting items by seller with ID ${currentUser._id}`)
+        this.logger.debug(`Getting items by seller with ID ${currentUser.config.ml_token.user_id}`)
         
         const requestMethod = 'get'
+        let url = `/users/${currentUser.config.ml_token.user_id}/items/search`
+        if (status || sellerSKU) {
+            url = url + '?'
+            let statusString = status ? `status=${status}` : ''
+            let skuString = sellerSKU ? `&seller_sku=${sellerSKU}` : ''
+            url = url + statusString + skuString
+        }
+
         const requestConfig: AxiosRequestConfig = {
-            url: `/users/${currentUser._id}/items/search`
-                + (status || sellerSKU) ? '?' : ''
-                + status ? `status=${status}` : ''
-                + sellerSKU ? `&seller_sku=${sellerSKU}` : '',
+            url,
             method: requestMethod,
             baseURL: config.mlAPI.url,
             headers: {
@@ -103,14 +115,27 @@ export default class ListService {
                     }
                 } else return {
                     id: field.id as string,
-                    field: field.id,
+                    field: null,
                     missing: null,
                     order: null,
-                    name: null
+                    name: field.name
                 }
             })
             return { ...response.data, available_orders: newAvailableOrders }
         } catch(error) {
+            this.logger.error(error)
+            throw error
+        }
+    }
+
+    public async GetItemsDetailsBySeller(currentUser: Partial<IUser>, { status, sellerSKU }: Partial<{ status: string, sellerSKU: string }>): Promise<IItem[]> {
+        this.logger.debug(`Getting items details by seller with ID ${currentUser.config.ml_token.user_id}`)
+
+        try {
+            const { results } = await this.GetItemsBySeller(currentUser, { status, sellerSKU })
+            const itemsDetails = await this.GetItemsDetails(results, currentUser)
+            return itemsDetails
+        } catch (error) {
             throw error
         }
     }

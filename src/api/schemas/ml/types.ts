@@ -291,8 +291,8 @@ const PagingType = new GraphQLObjectType({
     }
 })
 
-const SellerItemsType = new GraphQLObjectType({
-    name: 'SellerItemType',
+const SellerItemsIDsType = new GraphQLObjectType({
+    name: 'SellerItemsIDsType',
     fields: {
         seller_id: { type: GraphQLString },
         query: { type: GraphQLString },
@@ -306,5 +306,5 @@ const SellerItemsType = new GraphQLObjectType({
 export {
     ItemType,
     ItemInputType,
-    SellerItemsType
+    SellerItemsIDsType
 }

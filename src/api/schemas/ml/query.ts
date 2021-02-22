@@ -13,7 +13,7 @@ import {
 } from 'graphql'
 
 import {
-    ItemType, SellerItemsType
+    ItemType, SellerItemsIDsType
 } from './types'
 import { resolve } from 'path'
 
@@ -42,8 +42,8 @@ const MLQueryType = new GraphQLObjectType({
                 return items
             }
         },
-        itemsBySellerID: {
-            type: SellerItemsType,
+        itemsIDsBySeller: {
+            type: SellerItemsIDsType,
             args: {
                 status: { type: GraphQLString },
                 sellerSKU: { type: GraphQLString }
@@ -55,8 +55,25 @@ const MLQueryType = new GraphQLObjectType({
                 }
 
                 const listServiceInstance = Container.get(ListService)
-                const sellerItems = await listServiceInstance.GetItemsBySeller(context.currentUser, options)
-                return sellerItems
+                const sellerItemsIds = await listServiceInstance.GetItemsBySeller(context.currentUser, options)
+                return sellerItemsIds
+            }
+        },
+        itemsDetailsBySeller: {
+            type: new GraphQLList(ItemType),
+            args: {
+                status: { type: GraphQLString },
+                sellerSKU: { type: GraphQLString }
+            },
+            async resolve(parentObj, args, context) {
+                let options = {
+                    status: args.status ? args.status : null,
+                    sellerSKU: args.sellerSKU ? args.sellerSKU : null
+                }
+
+                const listServiceInstance = Container.get(ListService)
+                const items = await listServiceInstance.GetItemsDetailsBySeller(context.currentUser, options)
+                return items
             }
         }
     }
