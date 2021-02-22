@@ -14,10 +14,16 @@ export default async ({ expressApp }) => {
         model: require('../models/user').default
     }
 
+    const itemModel = {
+        name: 'itemModel',
+        model: require('../models/item')
+    }
+
     const { agenda } = dependencyInjector({
         mongoConnection,
         models: [
-            userModel
+            userModel,
+            itemModel
         ]
     })
 
