@@ -18,7 +18,7 @@ interface newfilter {
     name: string | null
 }
 
-export interface ISellerItemDTO {
+export interface IMLSellerItemDTO {
     seller_id: string
     query: string | null
     paging: {
@@ -31,7 +31,7 @@ export interface ISellerItemDTO {
     available_orders: filter[]
 }
 
-export interface ISellerItem {
+export interface IMLSellerItem {
     seller_id: string
     query: string | null
     paging: {

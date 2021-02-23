@@ -6,12 +6,9 @@ import IMLToken from '../../interfaces/IMLToken'
 import { EventDispatcher } from '../../decorators/eventDispatcher'
 import config from '../../config'
 import events from '../../subscribers/events'
-import LoggerInstance from '../../loaders/logger'
 
 @Service()
 export default class MLAuthService {
-    private origin: string
-
     constructor (
         @Inject('userModel') private userModel: Models.UserModel,
         @Inject('axios') private axios: AxiosInstance,

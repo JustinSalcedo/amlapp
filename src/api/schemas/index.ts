@@ -1,17 +1,22 @@
 import { MLQueryType, MLMutationType } from './ml'
+import { AmazonQueryType } from './amazon'
 
 import {
     GraphQLObjectType,
     GraphQLSchema
 } from 'graphql'
 
-import { ItemInputType } from './ml/types'
-
 const RootQueryType = new GraphQLObjectType({
     name: 'RootQueryType',
     fields: {
         ml: {
             type: MLQueryType,
+            resolve() {
+                return true
+            }
+        },
+        amazon: {
+            type: AmazonQueryType,
             resolve() {
                 return true
             }

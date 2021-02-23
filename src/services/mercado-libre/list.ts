@@ -2,7 +2,7 @@ import { Service, Inject } from 'typedi'
 import { AxiosInstance, AxiosPromise, AxiosRequestConfig } from 'axios'
 import { Logger } from 'winston'
 import { IMLItem, IMLItemInputDTO } from '../../interfaces/IMLItem'
-import { ISellerItem, ISellerItemDTO } from '../../interfaces/ISellerItems'
+import { IMLSellerItem, IMLSellerItemDTO } from '../../interfaces/IMLSellerItems'
 import { IUser } from '../../interfaces/IUser'
 import config from '../../config'
 
@@ -81,7 +81,7 @@ export default class ListService {
         }
     }
 
-    public async GetItemsBySeller(currentUser: Partial<IUser>, { status, sellerSKU }: Partial<{ status: string, sellerSKU: string }>): Promise<ISellerItem> {
+    public async GetItemsBySeller(currentUser: Partial<IUser>, { status, sellerSKU }: Partial<{ status: string, sellerSKU: string }>): Promise<IMLSellerItem> {
         this.logger.debug(`Getting items by seller with ID ${currentUser.config.ml_token.user_id}`)
         
         const requestMethod = 'get'
@@ -103,7 +103,7 @@ export default class ListService {
         }
 
         try {
-            const response: { data: ISellerItemDTO } = await this.axios(requestConfig)
+            const response: { data: IMLSellerItemDTO } = await this.axios(requestConfig)
             const newAvailableOrders = response.data.available_orders.map(field => {
                 if (typeof field.id !== 'string') {
                     return {

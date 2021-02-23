@@ -59,6 +59,10 @@ const User = new mongoose.Schema(
 
           ml_access_date: {
             type: Date
+          },
+
+          rapidapi_key: {
+            type: String
           }
         },
 

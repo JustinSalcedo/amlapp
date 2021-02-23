@@ -3,6 +3,7 @@ import bodyParser from 'body-parser'
 import cors from 'cors'
 import routes from '../api'
 import mlAuth from '../api/routes/ml/'
+import amazonAuth from '../api/routes/amazon'
 import config from '../config'
 
 export default ({ app }: { app: express.Application }) => {
@@ -25,6 +26,8 @@ export default ({ app }: { app: express.Application }) => {
     app.use(config.api.prefix, routes())
 
     app.use(config.mlAPI.redirect.prefix, mlAuth())
+
+    app.use('/amazon', amazonAuth())
 
     app.use((req, res, next) => {
         const err = new Error('Not Found')

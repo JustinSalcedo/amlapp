@@ -56,7 +56,7 @@ export default (app: Router) => {
                 return res.status(200).json({ redirectUrl })
             } catch (e) {
                 logger.error(e)
-                next(e)
+                return next(e)
             }
         }
     )
@@ -73,7 +73,7 @@ export default (app: Router) => {
                 res.status(200).json({ message: 'Yesssss' })
             } catch (error) {
                 logger.error(error)
-                next(error)
+                return next(error)
             }
         }
     )

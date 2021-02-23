@@ -15,7 +15,6 @@ import {
 import {
     ItemType, SellerItemsIDsType
 } from './types'
-import { resolve } from 'path'
 
 const MLQueryType = new GraphQLObjectType({
     name: 'MLQueryType',

@@ -13,6 +13,7 @@ export interface IUser {
     config: {
         ml_token: IMLToken
         ml_access_date: Date
+        rapidapi_key: string
     }
     ml_account: any
     createdAt: Date
