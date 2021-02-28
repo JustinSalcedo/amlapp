@@ -7,6 +7,7 @@ import { Logger } from 'winston'
 import { AxiosInstance, AxiosRequestConfig } from 'axios'
 import IMLToken from '../interfaces/IMLToken'
 import config from '../config'
+import ExchangerService from '../services/exchanger'
 
 @EventSubscriber()
 export default class UserSubscriber {
@@ -26,11 +27,14 @@ export default class UserSubscriber {
     }
 
     @On(events.user.signUp)
-    public onUserSignUp({ name, email, _id }: Partial<IUser>) {
+    public async onUserSignUp({ user }: { user: Partial<IUser> }) {
         const Logger: Logger = Container.get('logger')
 
         try {
             Logger.silly('User signed up')
+
+            const ExchangerServiceInstance = Container.get(ExchangerService)
+            await ExchangerServiceInstance.SetRates(user)
         } catch (e) {
             Logger.error(`Error on event ${events.user.signUp}: %o`, e)
 

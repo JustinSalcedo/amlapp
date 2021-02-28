@@ -39,5 +39,10 @@ export default {
         dbCollection: process.env.AGENDA_DB_COLLECTION,
         pooltime: process.env.AGENDA_POOL_TIME,
         concurrency: parseInt(process.env.AGENDA_CONCURRENCY, 10)
+    },
+    exchangerAPI: {
+        globalCurrency: process.env.GLOBAL_CURRENCY,
+        url: process.env.OPENEXCHANGERATES_API_URI,
+        appID: process.env.OPENEXCHANGERATES_APP_ID
     }
 }

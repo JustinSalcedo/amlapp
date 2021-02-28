@@ -78,8 +78,8 @@ const ReviewType = new GraphQLObjectType({
     }
 })
 
-const ValueType = new GraphQLObjectType({
-    name: 'ValueType',
+const AmazonValueType = new GraphQLObjectType({
+    name: 'AmazonValueType',
     fields: {
         value: { type: GraphQLString },
         dpUrl: { type: GraphQLString },
@@ -92,7 +92,7 @@ const VariationType = new GraphQLObjectType({
     name: 'VarationType',
     fields: {
         variationName: { type: GraphQLString },
-        values: { type: new GraphQLList(ValueType) }
+        values: { type: new GraphQLList(AmazonValueType) }
     }
 })
 

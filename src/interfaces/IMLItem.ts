@@ -48,11 +48,11 @@ interface variation {
 
 export interface IMLItemInputDTO {
     title: string,
-    subtitle: string | undefined ////
+    subtitle?: string ////
     category_id: string,
     price: number,
-    variations: variationInput[] | undefined  ////
-    official_store_id: number | undefined   ////
+    variations?: variationInput[]  ////
+    official_store_id?: number   ////
     currency_id: string,
     available_quantity: number,
     buying_mode: string,
@@ -61,7 +61,7 @@ export interface IMLItemInputDTO {
     description: {
         plain_text: string
     },
-    video_id: string,   //// Default: "YOUTUBE_ID_HERE"
+    video_id?: string,   //// Default: "YOUTUBE_ID_HERE"
     tags: string[],
     sale_terms: attributeInput[],
     pictures: {

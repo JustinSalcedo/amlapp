@@ -16,7 +16,7 @@ export default async ({ expressApp }) => {
 
     const itemModel = {
         name: 'itemModel',
-        model: require('../models/item')
+        model: require('../models/item').default
     }
 
     const { agenda } = dependencyInjector({

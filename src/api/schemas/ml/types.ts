@@ -27,8 +27,8 @@ const SubValueType = new GraphQLObjectType({
     }
 })
 
-const ValueType = new GraphQLObjectType({
-    name: 'ValueType',
+const MLValueType = new GraphQLObjectType({
+    name: 'MLValueType',
     fields: {
         id: { type: GraphQLString },
         name: { type: GraphQLString },
@@ -44,10 +44,10 @@ const VariationType = new GraphQLObjectType({
     fields: {
         id: { type: GraphQLInt },
         price: { type: GraphQLInt },
-        attribute_combinations: { type: new GraphQLList(ValueType) },
+        attribute_combinations: { type: new GraphQLList(MLValueType) },
         available_quantity: { type: GraphQLInt },
         sold_quantity: { type: GraphQLInt },
-        sale_terms: { type: new GraphQLList(ValueType) },
+        sale_terms: { type: new GraphQLList(MLValueType) },
         picture_ids: { type: new GraphQLList(GraphQLString) },
         seller_custom_field: { type: GraphQLString },
         catalog_product_id: { type: GraphQLString }
@@ -174,7 +174,7 @@ const ItemType = new GraphQLObjectType({
         initial_quantity: { type: GraphQLInt },
         available_quantity: { type: GraphQLInt },
         sold_quantity: { type: GraphQLInt },
-        sale_terms: { type: new GraphQLList(ValueType) },
+        sale_terms: { type: new GraphQLList(MLValueType) },
         buying_mode: { type: GraphQLString },
         listing_type_id: { type: GraphQLString },
         start_time: { type: GraphQLString },

@@ -5,10 +5,12 @@ import { IMLItem, IMLItemInputDTO } from '../../interfaces/IMLItem'
 import { IMLSellerItem, IMLSellerItemDTO } from '../../interfaces/IMLSellerItems'
 import { IUser } from '../../interfaces/IUser'
 import config from '../../config'
+import { IStagingItem } from '../../interfaces/IStagingItem'
 
 @Service()
 export default class ListService {
     constructor(
+        @Inject('itemModel') private itemModel: Models.ItemModel,
         @Inject('axios') private axios: AxiosInstance,
         @Inject('logger') private logger: Logger
     ) { }
@@ -54,28 +56,6 @@ export default class ListService {
 
             return itemsDetails
             
-        } catch (error) {
-            throw error
-        }
-    }
-
-    public async AddItem(itemInputDTO: Partial<IMLItemInputDTO>, currentUser: Partial<IUser>): Promise<Partial<IMLItem>> {
-        this.logger.debug('Adding item with input \n%o\n and user as \n%o\n', itemInputDTO, currentUser)
-        
-        const requestMethod = 'post'
-        const requestConfig: AxiosRequestConfig = {
-            url: '/items',
-            method: requestMethod,
-            baseURL: config.mlAPI.url,
-            headers: {
-                'Authorization': `Bearer ${currentUser.config.ml_token.access_token}`,
-            },
-            data: itemInputDTO
-        }
-
-        try {
-            const response = await this.axios(requestConfig)
-            return response.data
         } catch (error) {
             throw error
         }
@@ -135,6 +115,64 @@ export default class ListService {
             const { results } = await this.GetItemsBySeller(currentUser, { status, sellerSKU })
             const itemsDetails = await this.GetItemsDetails(results, currentUser)
             return itemsDetails
+        } catch (error) {
+            throw error
+        }
+    }
+
+    private async addItem(currentUser: Partial<IUser>, itemInputDTO: IMLItemInputDTO): Promise<IMLItem> {
+        this.logger.debug('Adding item with input \n%o\n and user as \n%o\n', itemInputDTO, currentUser)
+        
+        const requestMethod = 'post'
+        const requestConfig: AxiosRequestConfig = {
+            url: '/items',
+            method: requestMethod,
+            baseURL: config.mlAPI.url,
+            headers: {
+                'Authorization': `Bearer ${currentUser.config.ml_token.access_token}`,
+            },
+            data: itemInputDTO
+        }
+
+        try {
+            const response = await this.axios(requestConfig)
+            return response.data
+        } catch (error) {
+            throw error
+        }
+    }
+
+    private async addManyItems(currentUser: Partial<IUser>, itemRecords: IStagingItem[]): Promise<IMLItem[]> {
+        try {
+            const queuedItems = itemRecords.map(async record => {
+                const published = await this.addItem(currentUser, record.ml_data)
+                await this.itemModel.findByIdAndUpdate(record._id, { $set: {
+                    ml_id: published.id
+                } })
+                return published
+            })
+
+            return Promise.all(queuedItems)
+        } catch (error) {
+            
+        }
+    }
+
+    public async PublishItemsById(currentUser: Partial<IUser>, idInput: string[]): Promise<IMLItem[]> {
+        try {
+            const itemRecords = await this.itemModel.find({ ml_id: { $exists: false } }).in('_id', idInput)
+            const publishedItems = await this.addManyItems(currentUser, itemRecords)
+            return publishedItems
+        } catch (error) {
+            throw error
+        }
+    }
+
+    public async PublishAllItems(currentUser: Partial<IUser>): Promise<IMLItem[]> {
+        try {
+            const itemRecords = await this.itemModel.find({ ml_id: { $exists: false } })
+            const publishedItems = await this.addManyItems(currentUser, itemRecords)
+            return publishedItems
         } catch (error) {
             throw error
         }
