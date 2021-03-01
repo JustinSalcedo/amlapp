@@ -27,7 +27,7 @@ export default ({ app }: { app: express.Application }) => {
 
     app.use(config.mlAPI.redirect.prefix, mlAuth())
 
-    app.use('/amazon', amazonAuth())
+    app.use('/amazon/auth', amazonAuth())
 
     app.use((req, res, next) => {
         const err = new Error('Not Found')

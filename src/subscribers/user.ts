@@ -7,7 +7,6 @@ import { Logger } from 'winston'
 import { AxiosInstance, AxiosRequestConfig } from 'axios'
 import IMLToken from '../interfaces/IMLToken'
 import config from '../config'
-import ExchangerService from '../services/exchanger'
 
 @EventSubscriber()
 export default class UserSubscriber {
@@ -32,9 +31,6 @@ export default class UserSubscriber {
 
         try {
             Logger.silly('User signed up')
-
-            const ExchangerServiceInstance = Container.get(ExchangerService)
-            await ExchangerServiceInstance.SetRates(user)
         } catch (e) {
             Logger.error(`Error on event ${events.user.signUp}: %o`, e)
 

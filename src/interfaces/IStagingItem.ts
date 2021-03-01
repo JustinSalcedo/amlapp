@@ -2,14 +2,14 @@ import { IMLItemInputDTO } from './IMLItem'
 import { IAmazonItem } from './IAmazonItem'
 
 export interface IStagingItem {
-    _id: string
+    _id?: string
     published_by: string
-    allow_sync: boolean
+    allow_sync?: boolean
     ml_data: IMLItemInputDTO
-    ml_id: string
+    ml_id?: string
     amazon_data: IAmazonItem
-    createdAt: Date
-    updatedAt: Date
+    createdAt?: Date
+    updatedAt?: Date
 }
 
 export interface IItemDeletedInformation {

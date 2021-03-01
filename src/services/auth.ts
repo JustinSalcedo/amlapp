@@ -67,6 +67,8 @@ export default class AuthService {
             const user = userRecord.toObject()
             Reflect.deleteProperty(user, 'password')
             Reflect.deleteProperty(user, 'salt')
+            Reflect.deleteProperty(user, 'config')
+            Reflect.deleteProperty(user, 'redirect_urls')
 
             return { user, token }
         } else {

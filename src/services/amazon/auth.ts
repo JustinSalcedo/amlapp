@@ -1,18 +1,14 @@
-import config from  '../../config'
 import { Inject, Service } from 'typedi'
 import { AxiosInstance, AxiosPromise, AxiosRequestConfig } from 'axios'
 import { Logger } from 'winston'
 import { IUser } from '../../interfaces/IUser'
-import { EventDispatcher } from '../../decorators/eventDispatcher'
-import events from '../../subscribers/events'
 
 @Service()
 export default class AmazonAuthService {
     constructor (
         @Inject('userModel') private userModel: Models.UserModel,
         @Inject('axios') private axios: AxiosInstance,
-        @Inject('logger') private logger: Logger,
-        @EventDispatcher() private eventDispatcher
+        @Inject('logger') private logger: Logger
     ) {}
 
     public async AddAPIKey(currentUser: Partial<IUser>, apiKey: string): Promise<void> {

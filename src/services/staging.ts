@@ -1,12 +1,14 @@
-import { AxiosInstance } from "axios"
+import { AxiosInstance, AxiosRequestConfig } from "axios"
+import { Document } from "mongoose"
 import { Inject, Service } from "typedi"
 import { Logger } from "winston"
+import config from "../config"
 import { IAmazonItem } from "../interfaces/IAmazonItem"
-import { IExchangeRates } from "../interfaces/IExchangeRates"
+import { IMLPredictedCategory } from "../interfaces/IMLCategory"
+import { IMLExchangeRates } from "../interfaces/IMLExchangeRates"
 import { IMLItemInputDTO } from "../interfaces/IMLItem"
 import { IItemDeletedInformation, IStagingItem } from "../interfaces/IStagingItem"
 import { ICustomParameters, IUser } from "../interfaces/IUser"
-import item from "../models/item"
 
 @Service()
 export default class StagingService {
@@ -186,19 +188,41 @@ export default class StagingService {
 
     public async SetParameters({ _id, custom_parameters }: Partial<IUser>, inputParameters: Partial<ICustomParameters>): Promise<ICustomParameters> {
         try {
+            const newCustomParameters = Object.assign(custom_parameters, inputParameters)
+
             const userRecord: IUser = await this.userModel.findByIdAndUpdate(_id, { $set: {
-                custom_parameters: {
-                    profit_margin: inputParameters.profit_margin ? inputParameters.profit_margin : custom_parameters.profit_margin,
-                    default_quantity: inputParameters.default_quantity ? inputParameters.default_quantity : custom_parameters.default_quantity,
-                    is_profit_percentage: inputParameters.is_profit_percentage ? inputParameters.is_profit_percentage : custom_parameters.is_profit_percentage,
-                    buying_mode: inputParameters.buying_mode ? inputParameters.buying_mode : custom_parameters.buying_mode,
-                    item_condition: inputParameters.item_condition ? inputParameters.item_condition : custom_parameters.item_condition,
-                    listing_type_id: inputParameters.listing_type_id ? inputParameters.listing_type_id : custom_parameters.listing_type_id,
-                    sale_terms: inputParameters.sale_terms ? inputParameters.sale_terms : custom_parameters.sale_terms
-                }
+                custom_parameters: newCustomParameters
             } })
     
             return userRecord.custom_parameters
+        } catch (error) {
+            throw error
+        }
+    }
+
+    private async getExchangeRate({ custom_parameters }: Partial<IUser>, itemsInputDTO: IAmazonItem[]): Promise<{ base: string, quote: string, rate: number }> {
+        let base = itemsInputDTO
+            .map(item => item.currency.code)
+            .reduce((acc, currentValue) => {
+                if (acc === currentValue) {
+                    return currentValue
+                } else throw new Error('The item list must have equal currencies')
+            })
+
+        base = base ? base : 'USD'
+
+        const quote = custom_parameters.local_currency_code
+
+        const requestMethod = 'get'
+        const requestConfig: AxiosRequestConfig = {
+            url: `/currency_conversions/search?from=${base}&to=${quote}`,
+            method: requestMethod,
+            baseURL: config.mlAPI.url
+        }
+        
+        try {
+            const response: { data: IMLExchangeRates } = await this.axios(requestConfig)
+            return { base, quote, rate: response.data.rate }
         } catch (error) {
             throw error
         }
@@ -208,51 +232,75 @@ export default class StagingService {
         this.logger.debug(`Staging items for user ${currentUser._id}`)
 
         try {
-            itemsInputDTO.forEach(item => {
+            const exchangeRate = await this.getExchangeRate(currentUser, itemsInputDTO)
+            
+            const stagingRecords = itemsInputDTO.map(async item => {
+                const mlInputItem = await this.convertItem(currentUser, item, exchangeRate)
+                const stagingItemRecord = await this.itemModel.create({
+                    published_by: currentUser._id,
+                    ml_data: mlInputItem,
+                    amazon_data: item
+                })
 
+                return stagingItemRecord
             })
+
+            return Promise.all(stagingRecords)
         } catch (error) {
             
         }
     }
 
-    private convertItem({ config, custom_parameters }: Partial<IUser>, itemDTO: IAmazonItem): IMLItemInputDTO {
-        const {
-            productTitle,
-            categories,
-            price,
-            variations,
-            currency,
-            warehouseAvailability,
-            productDescription,
-            features,
-            imageUrlList
-        } = itemDTO
+    private async convertItem({ custom_parameters }: Partial<IUser>, itemDTO: IAmazonItem, exchangeRate: { base: string, quote: string, rate: number }): Promise<IMLItemInputDTO> {
+        try {
+            const {
+                productTitle,
+                categories,
+                price,
+                variations,
+                // currency,
+                warehouseAvailability,
+                productDescription,
+                features,
+                imageUrlList
+            } = itemDTO
+    
+            const convertedPrice = this.convertPrice(price, exchangeRate, { custom_parameters })
+    
+            const convertedQuantity = this.generateQuantity(warehouseAvailability, custom_parameters.default_quantity)
+    
+            const { category_id, attributes } = await this.matchCategory(productTitle)
+    
+            const convertedAttributes = this.convertAttributes({ attributes })
+            
+            const convertedItem: IMLItemInputDTO = {
+                title: productTitle,
+                category_id,
+                price: convertedPrice,
+                // variations,
+                currency_id: exchangeRate.quote,
+                available_quantity: convertedQuantity,
+                buying_mode: custom_parameters.buying_mode,
+                condition: custom_parameters.item_condition,
+                listing_type_id: custom_parameters.listing_type_id,
+                description: { plain_text: productDescription },
+                video_id: 'YOUTUBE_ID_HERE',
+                tags: features,
+                sale_terms: custom_parameters.sale_terms,
+                pictures: this.convertPictureList(imageUrlList),
+                attributes: convertedAttributes  ///////
+            }
 
-        const convertingParams = {
-            exchange_rates: config.exchange_rates,
-            profit_margin: custom_parameters.profit_margin,
-            is_profit_percentage: custom_parameters.is_profit_percentage
+            return convertedItem
+        } catch (error) {
+            throw error
         }
-        const convertedPrice = this.convertPrice(price, convertingParams, currency)
-        
-        const convertedItem: IMLItemInputDTO = {
-            title: productTitle,
-            category_id: this.matchCategory(categories[0]),
-            price: convertedPrice.price,
-            // variations,
-            currency_id: convertedPrice.currency_id,
-            available_quantity: this.generateQuantity(warehouseAvailability, custom_parameters.default_quantity),
-            buying_mode: custom_parameters.buying_mode,
-            condition: custom_parameters.item_condition,
-            listing_type_id: custom_parameters.listing_type_id,
-            description: { plain_text: productDescription },
-            video_id: 'YOUTUBE_ID_HERE',
-            tags: features,
-            sale_terms: custom_parameters.sale_terms,
-            pictures: this.convertPictureList(imageUrlList),
-            attributes  ///////
-        }
+    }
+
+    private convertAttributes({ attributes }: Partial<IMLPredictedCategory>): { id: string, value_name: string }[] {
+        return attributes.map(attr => {
+            return { id: attr.id, value_name: attr.id }
+        })
     }
 
     private convertPictureList(amazonPictures: string[]): { source: string }[] {
@@ -263,161 +311,30 @@ export default class StagingService {
         return  mlPicturesList
     }
 
-    private convertPrice(price: number, { exchange_rates, profit_margin, is_profit_percentage }: { exchange_rates: IExchangeRates, profit_margin: number, is_profit_percentage: boolean }, { code }: { code: string }): { price: number, currency_id: string } {
-        const validCode = code ? code : 'USD'
-
-        let profit = profit_margin
-        if (is_profit_percentage) {
+    private convertPrice(price: number, { rate }: { rate: number }, { custom_parameters }: Partial<IUser> ): number {
+        let profit = custom_parameters.profit_margin
+        if (custom_parameters.is_profit_percentage) {
             profit = profit * price * 0.01
         }
 
-        const convertedPrice = price / exchange_rates.rates[validCode] + profit
+        const convertedPrice = price * rate + profit
 
-        return { price: convertedPrice, currency_id: exchange_rates.base }
+        return convertedPrice
     }
 
-    private matchCategory(amazonCategory: string) : string {
-        switch (amazonCategory) {
-            case "Audible Books & Originals":
-				return "MCO3025"
+    private async matchCategory(amazonProductTitle: string) : Promise<IMLPredictedCategory> {
+        const requestMethod = 'get'
+        const requestConfig: AxiosRequestConfig = {
+            url: `/sites/MCO/domain_discovery/search?q=${amazonProductTitle}`,
+            method: requestMethod,
+            baseURL: config.mlAPI.url
+        }
 
-			case "Amazon Devices":
-				return "MCO1000"
-
-			case "Amazon Pharmacy":
-				return "MCO180800"
-
-			case "Appliances":
-				return "MCO5726"
-
-			case "Apps & Games":
-				return "MCO1144"
-
-			case "Arts, Crafts & Sewing":
-				return "MCO1368"
-
-			case "Automotive Parts & Accessories":
-				return "MCO1747"
-
-			case "Baby":
-				return "MCO1384"
-
-			case "Beauty & Personal Care":
-				return "MCO1246"
-
-			case "Books":
-				return "MCO3025"
-
-			case "CDs & Vinyl":
-				return "MCO1168"
-
-			case "Cell Phones & Accessories":
-				return "MCO1051"
-
-			case "Clothing, Shoes & Jewelry":
-				return "MCO1430"
-
-			case "Women":
-				return "MCO1430"
-
-			case "Men":
-				return "MCO1430"
-
-			case "Girls":
-				return "MCO1430"
-
-			case "Boys":
-				return "MCO1430"
-
-			case "Collectibles & Fine Art":
-				return "MCO1367"
-
-			case "Computers":
-				return "MCO1648"
-
-			case "Courses":
-				return "MCO1540"
-
-			case "Digital Educational Resources":
-				return "MCO1540"
-
-			case "Digital Music":
-				return "MCO1168"
-
-			case "Electronics":
-				return "MCO1000"
-
-			case "Garden & Outdoor":
-				return "MCO1574"
-
-			case "Grocery & Gourmet Food":
-				return "MCO1403"
-
-			case "Handmade":
-				return "MCO1368"
-
-			case "Health, Household & Baby Care":
-				return "MCO1574"
-
-			case "Home & Business Services":
-				return "MCO1540"
-
-			case "Home & Kitchen":
-				return "MCO1574"
-
-			case "Industrial & Scientific":
-				return "MCO1499"
-
-			case "Kindle Store":
-				return "MCO3025"
-
-			case "Luggage & Travel Gear":
-				return "MCO1430"
-
-			case "Magazine Subscriptions":
-				return "MCO3025"
-
-			case "Movies & TV":
-				return "MCO1168"
-
-			case "Musical Instruments":
-				return "MCO1182"
-
-			case "Office Products":
-				return "MCO1499"
-
-			case "Pet Supplies":
-				return "MCO1071"
-
-			case "Premium Beauty":
-				return "MCO1246"
-
-			case "Smart Home":
-				return "MCO1000"
-
-			case "Software":
-				return "MCO1648"
-
-			case "Sports & Outdoors":
-				return "MCO1276"
-
-			case "Tools & Home Improvement":
-				return "MCO175794"
-
-			case "Toys & Games":
-				return "MCO1132"
-
-			case "Vehicles":
-				return "MCO1743"
-
-			case "Video Games":
-				return "MCO1144"
-
-			case "Whole Foods Market":
-				return "MCO1403"
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           
-            default:
-                return "MCO1953"
+        try {
+            const response: { data: IMLPredictedCategory } = await this.axios(requestConfig)
+            return response.data
+        } catch (error) {
+            
         }
     }
 

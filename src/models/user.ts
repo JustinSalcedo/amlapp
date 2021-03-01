@@ -63,28 +63,6 @@ const User = new mongoose.Schema(
 
           rapidapi_key: {
             type: String
-          },
-
-          exchange_rates: {
-            disclaimer: {
-              type: String
-            },
-
-            license: {
-              type: String
-            },
-
-            timestamp: {
-              type: Number
-            },
-
-            base: {
-              type: String
-            },
-
-            rates: {
-              type: Object
-            }
           }
         },
 
@@ -131,6 +109,11 @@ const User = new mongoose.Schema(
                 }
               }],
               required: true
+            },
+
+            local_currency_code: {
+              type: String,
+              required: true
             }
           },
 
@@ -151,7 +134,8 @@ const User = new mongoose.Schema(
                 id: 'WARRANTY_TIME',
                 value_name: '90 días'
               }
-            ]
+            ],
+            local_currency_code: 'COP'
           }
         },
 

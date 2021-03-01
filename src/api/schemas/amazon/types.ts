@@ -62,7 +62,7 @@ const ProductDetailsType = new GraphQLObjectType({
     name: 'ProductDetailsType',
     fields: {
         name: { type: GraphQLString },
-        valule: { type: GraphQLString }
+        value: { type: GraphQLString }
     }
 })
 
