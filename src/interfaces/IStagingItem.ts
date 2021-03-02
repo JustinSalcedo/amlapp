@@ -1,5 +1,5 @@
 import { IMLItemInputDTO } from './IMLItem'
-import { IAmazonItem } from './IAmazonItem'
+import { IAmazonMiniItem } from './IAmazonItem'
 
 export interface IStagingItem {
     _id?: string
@@ -7,7 +7,7 @@ export interface IStagingItem {
     allow_sync?: boolean
     ml_data: IMLItemInputDTO
     ml_id?: string
-    amazon_data: IAmazonItem
+    amazon_data: IAmazonMiniItem
     createdAt?: Date
     updatedAt?: Date
 }

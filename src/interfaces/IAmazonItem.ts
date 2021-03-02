@@ -67,3 +67,22 @@ export interface IAmazonItem {
     variations: variation[]
     warehouseAvailability: string
 }
+
+export interface IAmazonMiniItem {
+    asin: string
+    productTitle: string
+    price: number
+    variations: variation[]
+    currency: {
+        code: string
+        symbol: string
+    } | null
+    warehouseAvailability: string
+    productDescription: string
+    productDetails: {
+        name: string
+        value: string
+    }[]
+    features: string[]
+    imageUrlList: string[]
+}

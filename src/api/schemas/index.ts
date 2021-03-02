@@ -1,5 +1,6 @@
 import { MLQueryType, MLMutationType } from './ml'
 import { AmazonQueryType } from './amazon'
+import { StageMutationType, StageQueryType } from './stage'
 
 import {
     GraphQLObjectType,
@@ -20,6 +21,12 @@ const RootQueryType = new GraphQLObjectType({
             resolve() {
                 return true
             }
+        },
+        stage: {
+            type: StageQueryType,
+            resolve() {
+                return true
+            }
         }
     }
 })
@@ -29,6 +36,12 @@ const RootMutationType = new GraphQLObjectType({
     fields: {
         ml: {
             type: MLMutationType,
+            resolve() {
+                return true
+            }
+        },
+        stage: {
+            type: StageMutationType,
             resolve() {
                 return true
             }

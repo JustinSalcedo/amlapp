@@ -66,6 +66,14 @@ const ProductDetailsType = new GraphQLObjectType({
     }
 })
 
+const ProductDetailsInputType = new GraphQLInputObjectType({
+    name: 'ProductDetailsInputType',
+    fields: {
+        name: { type: GraphQLString },
+        value: { type: GraphQLString }
+    }
+})
+
 const ReviewType = new GraphQLObjectType({
     name: 'ReviewType',
     fields: {
@@ -88,11 +96,29 @@ const AmazonValueType = new GraphQLObjectType({
     }
 })
 
-const VariationType = new GraphQLObjectType({
-    name: 'VarationType',
+const AmazonValueInputType = new GraphQLInputObjectType({
+    name: 'AmazonValueInputType',
+    fields: {
+        value: { type: GraphQLString },
+        dpUrl: { type: GraphQLString },
+        selected: { type: GraphQLBoolean },
+        available: { type: GraphQLBoolean }
+    }
+})
+
+const AmazonVariationType = new GraphQLObjectType({
+    name: 'AmazonVarationType',
     fields: {
         variationName: { type: GraphQLString },
         values: { type: new GraphQLList(AmazonValueType) }
+    }
+})
+
+const AmazonVariationInputType = new GraphQLInputObjectType({
+    name: 'AmazonVarationInputType',
+    fields: {
+        variationName: { type: GraphQLString },
+        values: { type: new GraphQLList(AmazonValueInputType) }
     }
 })
 
@@ -133,13 +159,55 @@ const ItemDetailsType = new GraphQLObjectType({
         shippingPrice: { type: GraphQLFloat },
         soldBy: { type: GraphQLString },
         usedPrice: { type: GraphQLFloat },
-        variations: { type: new GraphQLList(VariationType) },
+        variations: { type: new GraphQLList(AmazonVariationType) },
         warehouseAvailability: { type: GraphQLString }
+    }
+})
+
+const CurrencyInputType = new GraphQLInputObjectType({
+    name: 'CurrencyInputType',
+    fields: {
+        code: { type: GraphQLString },
+        symbol: { type: GraphQLString }
+    }
+})
+
+const ItemMinimumDetailsInputType = new GraphQLInputObjectType({
+    name: 'ItemMinimumDetailsInputType',
+    fields: {
+        asin: { type: new GraphQLNonNull(GraphQLString) },
+        currency: { type: CurrencyInputType },
+        features: { type: new GraphQLList(GraphQLString) },
+        imageUrlList: { type: new GraphQLNonNull(new GraphQLList(GraphQLString)) },
+        price: { type: new GraphQLNonNull(GraphQLFloat) },
+        productDescription: { type: new GraphQLNonNull(GraphQLString) },
+        productDetails: { type: new GraphQLList(ProductDetailsInputType) },
+        productTitle: { type: new GraphQLNonNull(GraphQLString )},
+        variations: { type: new GraphQLList(AmazonVariationInputType) },
+        warehouseAvailability: { type: GraphQLNonNull(GraphQLString) }
+    }
+})
+
+const ItemMinimumDetailsType = new GraphQLObjectType({
+    name: 'ItemMinimumDetailsType',
+    fields: {
+        asin: { type: new GraphQLNonNull(GraphQLString) },
+        currency: { type: CurrencyType },
+        features: { type: new GraphQLList(GraphQLString) },
+        imageUrlList: { type: new GraphQLNonNull(new GraphQLList(GraphQLString)) },
+        price: { type: new GraphQLNonNull(GraphQLFloat) },
+        productDescription: { type: new GraphQLNonNull(GraphQLString) },
+        productDetails: { type: new GraphQLList(ProductDetailsType) },
+        productTitle: { type: new GraphQLNonNull(GraphQLString )},
+        variations: { type: new GraphQLList(AmazonVariationType) },
+        warehouseAvailability: { type: GraphQLNonNull(GraphQLString) }
     }
 })
 
 export {
     SearchResultsType,
     SearchOptionsInputType,
-    ItemDetailsType
+    ItemDetailsType,
+    ItemMinimumDetailsType,
+    ItemMinimumDetailsInputType
 }

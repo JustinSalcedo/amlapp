@@ -180,17 +180,17 @@ const Item = new mongoose.Schema(
         },
 
         amazon_data: {
-            acKeywordLink: {
-                type: String
-            },
+            // acKeywordLink: {
+            //     type: String
+            // },
 
-            addon: {
-                type: Boolean
-            },
+            // addon: {
+            //     type: Boolean
+            // },
 
-            answeredQuestions: {
-                type: Number
-            },
+            // answeredQuestions: {
+            //     type: Number
+            // },
 
             asin: {
                 type: String,
@@ -199,14 +199,14 @@ const Item = new mongoose.Schema(
                 unique: true
             },
 
-            categories: {
-                type: [String],
-                required: true
-            },
+            // categories: {
+            //     type: [String],
+            //     required: true
+            // },
 
-            countReview: {
-                type: Number
-            },
+            // countReview: {
+            //     type: Number
+            // },
 
             currency: {
                 code: {
@@ -218,64 +218,64 @@ const Item = new mongoose.Schema(
                 }
             },
 
-            dealPrice: {
-                type: Number
-            },
+            // dealPrice: {
+            //     type: Number
+            // },
 
-            deliveryMessage: {
-                type: String
-            },
+            // deliveryMessage: {
+            //     type: String
+            // },
 
             features: {
                 type: [String]
             },
 
-            fulfilledBy: {
-                type: String
-            },
+            // fulfilledBy: {
+            //     type: String
+            // },
 
             imageUrlList: {
                 type: [String]
             },
 
-            mainImage: {
-                imageResolution: {
-                    type: String
-                },
+            // mainImage: {
+            //     imageResolution: {
+            //         type: String
+            //     },
 
-                imageUrl: {
-                    type: String
-                }
-            },
+            //     imageUrl: {
+            //         type: String
+            //     }
+            // },
 
-            manufacturer: {
-                type: String
-            },
+            // manufacturer: {
+            //     type: String
+            // },
 
-            minimalQuantity: {
-                type: String
-            },
+            // minimalQuantity: {
+            //     type: String
+            // },
 
-            pantry: {
-                type: Boolean
-            },
+            // pantry: {
+            //     type: Boolean
+            // },
 
             price: {
                 type: Number,
                 required: true
             },
 
-            priceSaving: {
-                type: String
-            },
+            // priceSaving: {
+            //     type: String
+            // },
 
-            priceShippingInformation: {
-                type: String
-            },
+            // priceShippingInformation: {
+            //     type: String
+            // },
 
-            prime: {
-                type: Boolean
-            },
+            // prime: {
+            //     type: Boolean
+            // },
 
             productDescription: {
                 type: String,
@@ -294,78 +294,78 @@ const Item = new mongoose.Schema(
                 }]
             },
 
-            productRating: {
-                type: String
-            },
+            // productRating: {
+            //     type: String
+            // },
 
             productTitle: {
                 type: String,
                 required: true
             },
 
-            rentPrice: {
-                type: Number
-            },
+            // rentPrice: {
+            //     type: Number
+            // },
 
-            responseMessage: {
-                type: String
-            },
+            // responseMessage: {
+            //     type: String
+            // },
 
-            responseStatus: {
-                type: String
-            },
+            // responseStatus: {
+            //     type: String
+            // },
 
-            retailPrice: {
-                type: Number
-            },
+            // retailPrice: {
+            //     type: Number
+            // },
 
-            retailPriceRent: {
-                type: Number
-            },
+            // retailPriceRent: {
+            //     type: Number
+            // },
 
-            reviews: {
-                type: [{
-                    text: {
-                        type: String
-                    },
+            // reviews: {
+            //     type: [{
+            //         text: {
+            //             type: String
+            //         },
 
-                    date: {
-                        type: String
-                    },
+            //         date: {
+            //             type: String
+            //         },
 
-                    rating: {
-                        type: String
-                    },
+            //         rating: {
+            //             type: String
+            //         },
 
-                    title: {
-                        type: String
-                    },
+            //         title: {
+            //             type: String
+            //         },
 
-                    userName: {
-                        type: String
-                    },
+            //         userName: {
+            //             type: String
+            //         },
 
-                    url: {
-                        type: String
-                    }
-                }]
-            },
+            //         url: {
+            //             type: String
+            //         }
+            //     }]
+            // },
 
-            salePrice: {
-                type: Number
-            },
+            // salePrice: {
+            //     type: Number
+            // },
 
-            shippingPrice: {
-                type: Number
-            },
+            // shippingPrice: {
+            //     type: Number
+            // },
 
-            soldBy: {
-                type: String
-            },
+            // soldBy: {
+            //     type: String
+            // },
 
-            usedPrice: {
-                type: Number
-            },
+            // usedPrice: {
+            //     type: Number
+            // },
 
             varations: {
                 type: [{

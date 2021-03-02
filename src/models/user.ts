@@ -123,7 +123,7 @@ const User = new mongoose.Schema(
             default_quantity: 10,
             buying_mode: 'buy_it_now',
             item_condition: 'new',
-            listing_type_id: 'classic',
+            listing_type_id: 'gold_special',
             sale_terms: [
               {
                 id: 'WARRANTY_TYPE',

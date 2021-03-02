@@ -39,8 +39,8 @@ const MLValueType = new GraphQLObjectType({
     }
 })
 
-const VariationType = new GraphQLObjectType({
-    name: 'VariationType',
+const MLVariationType = new GraphQLObjectType({
+    name: 'MLVariationType',
     fields: {
         id: { type: GraphQLInt },
         price: { type: GraphQLInt },
@@ -198,7 +198,7 @@ const ItemType = new GraphQLObjectType({
         attributes: { type: new GraphQLList(AttributeType) },
         // warnings: { type: new GraphQLList(GraphQLString) },
         listing_source: { type: GraphQLString },
-        variations: { type: new GraphQLList(VariationType) },
+        variations: { type: new GraphQLList(MLVariationType) },
         status: { type: GraphQLString },
         sub_status: { type: new GraphQLList(GraphQLString) },
         tags: { type: new GraphQLList(GraphQLString) },
@@ -216,30 +216,52 @@ const ItemType = new GraphQLObjectType({
     }
 })
 
-const SourceInputType = new GraphQLInputObjectType({
-    name: 'SourceInputType',
+const SourceDataInputType = new GraphQLInputObjectType({
+    name: 'SourceDataInputType',
     fields: {
         source: { type: new GraphQLNonNull(GraphQLString) }
     }
 })
 
-const AttributeInputType = new GraphQLInputObjectType({
-    name: 'AttributeInputType',
+const SourceDataType = new GraphQLObjectType({
+    name: 'SourceDataType',
+    fields: {
+        source: { type: GraphQLString }
+    }
+})
+
+const AttributeDataInputType = new GraphQLInputObjectType({
+    name: 'AttributeDataInputType',
     fields: {
         id: { type: new GraphQLNonNull(GraphQLString) },
         value_name: { type: new GraphQLNonNull(GraphQLString) }
     }
 })
 
-const DescriptionInputType = new GraphQLInputObjectType({
-    name: 'DescriptionInputType',
+const AttributeDataType = new GraphQLObjectType({
+    name: 'AttributeDataType',
+    fields: {
+        id: { type: GraphQLString },
+        value_name: { type: GraphQLString }
+    }
+})
+
+const DescriptionDataInputType = new GraphQLInputObjectType({
+    name: 'DescriptionDataInputType',
     fields: {
         plain_text: { type: new GraphQLNonNull(GraphQLString) }
     }
 })
 
-const AttributeCombinationInputType = new GraphQLInputObjectType({
-    name: 'AttributeCombinationInputType',
+const DescriptionDataType = new GraphQLObjectType({
+    name: 'DescriptionDataType',
+    fields: {
+        plain_text: { type: GraphQLString }
+    }
+})
+
+const AttributeCombinationDataInputType = new GraphQLInputObjectType({
+    name: 'AttributeCombinationDataInputType',
     fields: {
         name: { type: new GraphQLNonNull(GraphQLString) },
         value_id: { type: GraphQLString },
@@ -247,38 +269,82 @@ const AttributeCombinationInputType = new GraphQLInputObjectType({
     }
 })
 
-const VariationInputType = new GraphQLInputObjectType({
-    name: 'VariationInputType',
+const AttributeCombinationDataType = new GraphQLObjectType({
+    name: 'AttributeCombinationDataType',
     fields: {
-        attribute_combinations: { type: new GraphQLNonNull(new GraphQLList(AttributeCombinationInputType)) },
+        name: { type: new GraphQLNonNull(GraphQLString) },
+        value_id: { type: GraphQLString },
+        value_name: { type: GraphQLString }
+    }
+})
+
+const MLVariationDataInputType = new GraphQLInputObjectType({
+    name: 'MLVariationInputType',
+    fields: {
+        attribute_combinations: { type: new GraphQLNonNull(new GraphQLList(AttributeCombinationDataInputType)) },
         price: { type: new GraphQLNonNull(GraphQLInt) },
         available_quantity: { type: new GraphQLNonNull(GraphQLInt) },
-        attributes: { type: new GraphQLNonNull(new GraphQLList(AttributeInputType)) },
+        attributes: { type: new GraphQLNonNull(new GraphQLList(AttributeDataInputType)) },
         sold_quantity: { type: new GraphQLNonNull(GraphQLInt) },
         seller_custom_field: { type: GraphQLString },
         picture_ids: { type: new GraphQLNonNull(new GraphQLList(GraphQLString)) },
     }
 })
 
-const ItemInputType = new GraphQLInputObjectType({
-    name: 'ItemInputType',
+const MLVariationDataType = new GraphQLObjectType({
+    name: 'MLVariationDataType',
+    fields: {
+        attribute_combinations: { type: new GraphQLList(AttributeCombinationDataType) },
+        price: { type: GraphQLInt },
+        available_quantity: { type: GraphQLInt },
+        attributes: { type: new GraphQLList(AttributeDataType) },
+        sold_quantity: { type: GraphQLInt },
+        seller_custom_field: { type: GraphQLString },
+        picture_ids: { type: new GraphQLList(GraphQLString) },
+    }
+})
+
+const ItemDataInputType = new GraphQLInputObjectType({
+    name: 'ItemDataInputType',
     fields: {
         title: { type: new GraphQLNonNull(GraphQLString) },
         subtitle: { type: GraphQLString },
         category_id: { type: new GraphQLNonNull(GraphQLString) },
         price: { type: new GraphQLNonNull(GraphQLInt) },
-        variations: { type: new GraphQLList(VariationInputType) },
+        variations: { type: new GraphQLList(MLVariationDataInputType) },
         official_store_id: { type: GraphQLInt },
         currency_id: { type: new GraphQLNonNull(GraphQLString) },
         available_quantity: { type: new GraphQLNonNull(GraphQLInt) },
         buying_mode: { type: new GraphQLNonNull(GraphQLString) },
         condition: { type: new GraphQLNonNull(GraphQLString) },
         listing_type_id: { type: new GraphQLNonNull(GraphQLString) },
-        description: { type: new GraphQLNonNull(DescriptionInputType) },
+        description: { type: new GraphQLNonNull(DescriptionDataInputType) },
         video_id: { type: new GraphQLNonNull(GraphQLString), defaultValue: 'YOUTUBE_ID_HERE' },
-        sale_terms: { type: new GraphQLNonNull(new GraphQLList(AttributeInputType)) },
-        pictures: { type: new GraphQLNonNull(new GraphQLList(SourceInputType)) },
-        attributes: { type: new GraphQLNonNull(new GraphQLList(AttributeInputType)) }
+        sale_terms: { type: new GraphQLNonNull(new GraphQLList(AttributeDataInputType)) },
+        pictures: { type: new GraphQLNonNull(new GraphQLList(SourceDataInputType)) },
+        attributes: { type: new GraphQLNonNull(new GraphQLList(AttributeDataInputType)) }
+    }
+})
+
+const ItemDataOptionalInputType = new GraphQLInputObjectType({
+    name: 'ItemDataOptionalInputType',
+    fields: {
+        title: { type: GraphQLString },
+        subtitle: { type: GraphQLString },
+        category_id: { type: GraphQLString },
+        price: { type: GraphQLInt },
+        variations: { type: new GraphQLList(MLVariationDataInputType) },
+        official_store_id: { type: GraphQLInt },
+        currency_id: { type: GraphQLString },
+        available_quantity: { type: GraphQLInt },
+        buying_mode: { type: GraphQLString },
+        condition: { type: GraphQLString },
+        listing_type_id: { type: GraphQLString },
+        description: { type: DescriptionDataInputType },
+        video_id: { type: GraphQLString},
+        sale_terms: { type: new GraphQLList(AttributeDataInputType) },
+        pictures: { type: new GraphQLList(SourceDataInputType) },
+        attributes: { type: new GraphQLList(AttributeDataInputType) }
     }
 })
 
@@ -329,8 +395,32 @@ const SellerItemsIDsType = new GraphQLObjectType({
     }
 })
 
+const ItemDataType = new GraphQLObjectType({
+    name: 'ItemDataType',
+    fields: {
+        title: { type: GraphQLString },
+        subtitle: { type: GraphQLString },
+        category_id: { type: GraphQLString },
+        price: { type: GraphQLInt },
+        variations: { type: new GraphQLList(MLVariationDataType) },
+        official_store_id: { type: GraphQLInt },
+        currency_id: { type: GraphQLString },
+        available_quantity: { type: GraphQLInt },
+        buying_mode: { type: GraphQLString },
+        condition: { type: GraphQLString },
+        listing_type_id: { type: GraphQLString },
+        description: { type: DescriptionDataType },
+        video_id: { type: GraphQLString},
+        sale_terms: { type: new GraphQLList(AttributeDataType) },
+        pictures: { type: new GraphQLList(SourceDataType) },
+        attributes: { type: new GraphQLList(AttributeDataType) }
+    }
+})
+
 export {
     ItemType,
-    ItemInputType,
+    ItemDataInputType,
+    ItemDataOptionalInputType,
+    ItemDataType,
     SellerItemsIDsType
 }

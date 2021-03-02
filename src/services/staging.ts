@@ -1,9 +1,8 @@
 import { AxiosInstance, AxiosRequestConfig } from "axios"
-import { Document } from "mongoose"
 import { Inject, Service } from "typedi"
 import { Logger } from "winston"
 import config from "../config"
-import { IAmazonItem } from "../interfaces/IAmazonItem"
+import { IAmazonItem, IAmazonMiniItem } from "../interfaces/IAmazonItem"
 import { IMLPredictedCategory } from "../interfaces/IMLCategory"
 import { IMLExchangeRates } from "../interfaces/IMLExchangeRates"
 import { IMLItemInputDTO } from "../interfaces/IMLItem"
@@ -155,7 +154,7 @@ export default class StagingService {
             const deletedItemsInformation = await this.itemModel.deleteMany({ _id: { $in: idInput } })
             return deletedItemsInformation
         } catch (error) {
-            
+            throw error
         }
     }
 
@@ -192,7 +191,7 @@ export default class StagingService {
 
             const userRecord: IUser = await this.userModel.findByIdAndUpdate(_id, { $set: {
                 custom_parameters: newCustomParameters
-            } })
+            } }, { new: true })
     
             return userRecord.custom_parameters
         } catch (error) {
@@ -200,16 +199,18 @@ export default class StagingService {
         }
     }
 
-    private async getExchangeRate({ custom_parameters }: Partial<IUser>, itemsInputDTO: IAmazonItem[]): Promise<{ base: string, quote: string, rate: number }> {
+    private async getExchangeRate({ custom_parameters }: Partial<IUser>, itemsInputDTO: IAmazonMiniItem[]): Promise<{ base: string, quote: string, rate: number }> {
         let base = itemsInputDTO
-            .map(item => item.currency.code)
+            .map(item => {
+                if (item.currency) {
+                    return item.currency.code
+                } else return 'USD'
+            })
             .reduce((acc, currentValue) => {
                 if (acc === currentValue) {
                     return currentValue
                 } else throw new Error('The item list must have equal currencies')
             })
-
-        base = base ? base : 'USD'
 
         const quote = custom_parameters.local_currency_code
 
@@ -224,15 +225,46 @@ export default class StagingService {
             const response: { data: IMLExchangeRates } = await this.axios(requestConfig)
             return { base, quote, rate: response.data.rate }
         } catch (error) {
+            this.logger.error(error)
             throw error
         }
     }
 
-    public async StageItems(currentUser: Partial<IUser>, itemsInputDTO: IAmazonItem[]): Promise<IStagingItem[]> {
+    public async AutoStageItemsByASIN(currentUser: Partial<IUser>, asins: string[]): Promise<IStagingItem[]> {
+        try {
+            const amazonItems = asins.map(async asin => {
+                let productUrl = `https://www.amazon.com/dp/${asin}`
+                let url = `/amz/amazon-lookup-product?url=${productUrl}`
+
+                const requestMethod = 'get'
+                const requestConfig: AxiosRequestConfig = {
+                    url,
+                    method: requestMethod,
+                    baseURL: config.amazonAPI.url,
+                    headers: {
+                        'x-rapidapi-key': currentUser.config.rapidapi_key,
+                        'x-rapidapi-host': config.amazonAPI.host
+                    }
+                }
+
+                const response = await this.axios(requestConfig)
+                return response.data as IAmazonItem
+            })
+
+            const itemsInput = await Promise.all(amazonItems)
+            const stagedItems = await this.StageItems(currentUser, itemsInput)
+            return stagedItems
+        } catch (error) {
+            throw error
+        }
+    }
+
+    public async StageItems(currentUser: Partial<IUser>, itemsInputDTO: IAmazonMiniItem[]): Promise<IStagingItem[]> {
         this.logger.debug(`Staging items for user ${currentUser._id}`)
 
         try {
             const exchangeRate = await this.getExchangeRate(currentUser, itemsInputDTO)
+            this.logger.debug('Our itemsInput is:\n%o', itemsInputDTO)
             
             const stagingRecords = itemsInputDTO.map(async item => {
                 const mlInputItem = await this.convertItem(currentUser, item, exchangeRate)
@@ -247,20 +279,21 @@ export default class StagingService {
 
             return Promise.all(stagingRecords)
         } catch (error) {
-            
+            this.logger.error(error)
+            throw error
         }
     }
 
-    private async convertItem({ custom_parameters }: Partial<IUser>, itemDTO: IAmazonItem, exchangeRate: { base: string, quote: string, rate: number }): Promise<IMLItemInputDTO> {
+    private async convertItem({ custom_parameters }: Partial<IUser>, itemDTO: IAmazonMiniItem, exchangeRate: { base: string, quote: string, rate: number }): Promise<IMLItemInputDTO> {
         try {
             const {
                 productTitle,
-                categories,
+                // categories,
                 price,
                 variations,
-                // currency,
                 warehouseAvailability,
                 productDescription,
+                productDetails,
                 features,
                 imageUrlList
             } = itemDTO
@@ -298,17 +331,27 @@ export default class StagingService {
     }
 
     private convertAttributes({ attributes }: Partial<IMLPredictedCategory>): { id: string, value_name: string }[] {
-        return attributes.map(attr => {
-            return { id: attr.id, value_name: attr.id }
-        })
+        try {
+            return attributes.map(attr => {
+                return { id: attr.id, value_name: attr.id }
+            })
+        } catch (error) {
+            this.logger.error('Method StagingService.convertAttributes failed: %o', error)
+            throw error
+        }
     }
 
     private convertPictureList(amazonPictures: string[]): { source: string }[] {
-        const mlPicturesList = amazonPictures.map(pictureUrl => {
-            return { source: pictureUrl }
-        })
-
-        return  mlPicturesList
+        try {
+            const mlPicturesList = amazonPictures.map(pictureUrl => {
+                return { source: pictureUrl }
+            })
+    
+            return  mlPicturesList
+        } catch (error) {
+            this.logger.error('Method StagingService.convertPicturesList failed: %o', error)
+            throw error
+        }
     }
 
     private convertPrice(price: number, { rate }: { rate: number }, { custom_parameters }: Partial<IUser> ): number {
@@ -317,7 +360,7 @@ export default class StagingService {
             profit = profit * price * 0.01
         }
 
-        const convertedPrice = price * rate + profit
+        const convertedPrice = Math.round(price * rate + profit)
 
         return convertedPrice
     }
@@ -332,9 +375,11 @@ export default class StagingService {
 
         try {
             const response: { data: IMLPredictedCategory } = await this.axios(requestConfig)
-            return response.data
+            this.logger.debug('The matched category for product %s is %o', amazonProductTitle, response.data)
+            return response.data[0]
         } catch (error) {
-            
+            this.logger.error('Method StagingService.matchCategory failed: %o', error)
+            throw error
         }
     }
 
@@ -344,17 +389,20 @@ export default class StagingService {
         } else return 0
     }
 
-    public async updateMLInputData({ _id }: Partial<IStagingItem>, mlInputData: Partial<IMLItemInputDTO>): Promise<IStagingItem> {
+    public async UpdateMLInputData({ _id }: Partial<IStagingItem>, mlInputData: Partial<IMLItemInputDTO>): Promise<IStagingItem> {
+        this.logger.debug('Updating item %s', _id)
+        
         try {
             const itemRecord = await this.itemModel.findById(_id).select('ml_data')
             const newMLDataInput = Object.assign(itemRecord.ml_data, mlInputData)
             const updatedItemRecord = await this.itemModel.findByIdAndUpdate(_id, { $set: {
                 ml_data: newMLDataInput
-            } })
+            } }, { new: true })
 
             return updatedItemRecord
         } catch (error) {
-            
+            this.logger.error('Method StagingService.UpdateMLInputData failed: %o', error)
+            throw error
         }
     }
 }

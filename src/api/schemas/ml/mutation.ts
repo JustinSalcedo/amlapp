@@ -12,7 +12,7 @@ import {
 } from 'graphql'
 
 import {
-    ItemInputType,
+    ItemDataInputType,
     ItemType
 } from './types'
 
@@ -22,7 +22,7 @@ const MLMutationType = new GraphQLObjectType({
         listItem: {
             type: ItemType,
             args: {
-                item: { type: new GraphQLNonNull(ItemInputType) }
+                item: { type: new GraphQLNonNull(ItemDataInputType) }
             },
             async resolve(parentObj, args, context) {
                 const listServiceInstance = Container.get(ListService)
