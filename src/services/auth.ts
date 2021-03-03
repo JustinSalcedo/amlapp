@@ -76,7 +76,49 @@ export default class AuthService {
         }
     }
 
-    private generateToken(user) {
+    public async ChangePassword({ _id }: Partial<IUser>, { oldPassword, newPassword }: { oldPassword: string, newPassword: string }): Promise<{ user: IUser; token: string }> {
+        const userRecord = await this.userModel.findById(_id)
+        if (!userRecord) {
+            throw new Error('User not registered')
+        }
+
+        try {
+            this.logger.silly('Changing password')
+            const validPassword = await argon2.verify(userRecord.password, oldPassword)
+            
+            if (validPassword) {
+                const salt = randomBytes(32)
+
+                this.logger.silly('Hashing New Password')
+                const hashedPassword = await argon2.hash(newPassword, { salt })
+                this.logger.silly('Updating user db record')
+                const updatedUserRecord = await this.userModel.findByIdAndUpdate(_id, { $set: {
+                    salt: salt.toString('hex'),
+                    password: hashedPassword
+                } }, { new: true })
+                this.logger.silly('Generating New JWT')
+                const token = this.generateToken(updatedUserRecord)
+
+                if (!updatedUserRecord) {
+                    throw new Error('User cannot be updated')
+                }
+
+                const user = updatedUserRecord.toObject()
+                Reflect.deleteProperty(user, 'password')
+                Reflect.deleteProperty(user, 'salt')
+                Reflect.deleteProperty(user, 'config')
+                Reflect.deleteProperty(user, 'redirect_urls')
+                return { user, token }
+            } else {
+                throw new Error('Invalid  Old Password')
+            }
+        } catch (error) {
+            this.logger.error(error)
+            throw error
+        }
+    }
+
+    private generateToken(user: IUser) {
         const today = new Date()
         const exp = new Date(today)
         exp.setDate(today.getDate() + 60)

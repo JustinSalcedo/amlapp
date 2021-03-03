@@ -183,6 +183,15 @@ export default class StagingService {
         }
     }
 
+    public async GetAllItems({ items }: Partial<IUser>): Promise<IStagingItem[]> {
+        try {
+            const itemRecords = await this.itemModel.find().in('_id', items)
+            return itemRecords
+        } catch (error) {
+            throw error
+        }
+    }
+
     public async SearchItemsByKeyword(keyword: string): Promise<IStagingItem[]> {
         try {
             const regExpression = new RegExp(keyword, 'i')

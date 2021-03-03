@@ -23,7 +23,7 @@ const StageQueryType = new GraphQLObjectType ({
             args: {
                 ids: { type: new GraphQLNonNull(new GraphQLList(GraphQLString)) }
             },
-            async resolve(parentObj, args, context) {
+            async resolve(parentObj, args) {
                 const stagingServiceInstance = Container.get(StagingService)
                 const recordedItems = await stagingServiceInstance.GetItemsByID(args.ids)
                 return recordedItems
@@ -37,6 +37,14 @@ const StageQueryType = new GraphQLObjectType ({
             async resolve(parentObj, args) {
                 const stagingServiceInstance = Container.get(StagingService)
                 const recordedItems = await stagingServiceInstance.GetItemsByASIN(args.asins)
+                return recordedItems
+            }
+        },
+        getAllItems: {
+            type: new GraphQLList(StagedItemType),
+            async resolve(parentObj, args, context) {
+                const stagingServiceInstance = Container.get(StagingService)
+                const recordedItems = await stagingServiceInstance.GetAllItems(context.currentUser)
                 return recordedItems
             }
         },
