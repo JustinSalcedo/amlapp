@@ -66,11 +66,11 @@ const StageMutationType = new GraphQLObjectType ({
         deleteItemsByID: {
             type: DeletedItemsInfoType,
             args: {
-                ids: { type: new GraphQLNonNull(GraphQLString) }
+                ids: { type: new GraphQLNonNull(new GraphQLList(GraphQLString)) }
             },
-            async resolve(parentObj, args) {
+            async resolve(parentObj, args, context) {
                 const stagingServiceInstance = Container.get(StagingService)
-                const deletedItemsInfo = await stagingServiceInstance.DeleteItemsByID(args.ids)
+                const deletedItemsInfo = await stagingServiceInstance.DeleteItemsByID(context.currentUser, args.ids)
                 return deletedItemsInfo
             }
         },

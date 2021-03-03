@@ -1,13 +1,16 @@
 import { AxiosInstance, AxiosRequestConfig } from "axios"
+import { resolve } from "path"
 import { Inject, Service } from "typedi"
 import { Logger } from "winston"
 import config from "../config"
+import { EventDispatcher } from "../decorators/eventDispatcher"
 import { IAmazonItem, IAmazonMiniItem } from "../interfaces/IAmazonItem"
 import { IMLPredictedCategory } from "../interfaces/IMLCategory"
 import { IMLExchangeRates } from "../interfaces/IMLExchangeRates"
 import { IMLItemInputDTO } from "../interfaces/IMLItem"
 import { IItemDeletedInformation, IStagingItem } from "../interfaces/IStagingItem"
 import { ICustomParameters, IUser } from "../interfaces/IUser"
+import events from "../subscribers/events"
 
 @Service()
 export default class StagingService {
@@ -18,7 +21,8 @@ export default class StagingService {
         @Inject('axios') private axios: AxiosInstance,
         @Inject('logger') private logger: Logger,
         @Inject('itemModel') private itemModel: Models.ItemModel,
-        @Inject('userModel') private userModel: Models.UserModel
+        @Inject('userModel') private userModel: Models.UserModel,
+        @EventDispatcher() private eventDispatcher
     ) {
         // this.mlCategories = [
         //     {
@@ -149,9 +153,12 @@ export default class StagingService {
         // this.mlCategoriesIds = this.mlCategories.map(category => category.id)
     }
 
-    public async DeleteItemsByID(idInput: string[]): Promise<Partial<IItemDeletedInformation>> {
+    public async DeleteItemsByID(currentUser: Partial<IUser>, idInput: string[]): Promise<Partial<IItemDeletedInformation>> {
         try {
             const deletedItemsInformation = await this.itemModel.deleteMany({ _id: { $in: idInput } })
+
+            this.eventDispatcher.dispatch(events.item.delete, { currentUser, itemIds: idInput })
+
             return deletedItemsInformation
         } catch (error) {
             throw error
@@ -178,7 +185,9 @@ export default class StagingService {
 
     public async SearchItemsByKeyword(keyword: string): Promise<IStagingItem[]> {
         try {
-            const itemRecords = await this.itemModel.fuzzySearch(keyword)
+            const regExpression = new RegExp(keyword, 'i')
+            const itemRecords = await this.itemModel.find().regex('ml_data.title', regExpression)
+
             return itemRecords
         } catch (error) {
             throw error
@@ -277,7 +286,12 @@ export default class StagingService {
                 return stagingItemRecord
             })
 
-            return Promise.all(stagingRecords)
+            const resolvedRecords = await Promise.all(stagingRecords)
+            const itemIds = resolvedRecords.map(item => item._id)
+
+            this.eventDispatcher.dispatch(events.item.stage, { currentUser, itemIds })
+
+            return resolvedRecords
         } catch (error) {
             this.logger.error(error)
             throw error

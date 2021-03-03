@@ -1,5 +1,4 @@
 import mongoose from 'mongoose'
-import mongooseFuzzySearching from 'mongoose-fuzzy-searching'
 import { IStagingItem } from '../interfaces/IStagingItem'
 
 const Item = new mongoose.Schema(
@@ -402,7 +401,5 @@ const Item = new mongoose.Schema(
     },
     { timestamps: true }
 )
-
-Item.plugin(mongooseFuzzySearching, { fields: ['ml_data.title', 'amazon_data.productTitle'] })
 
 export default mongoose.model<IStagingItem & mongoose.Document>('Item', Item)
