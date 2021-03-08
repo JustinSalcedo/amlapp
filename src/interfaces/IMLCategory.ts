@@ -10,3 +10,9 @@ export interface IMLPredictedCategory {
         value_name: string
     }[]
 }
+
+// export interface IMLCategoryChildren {
+//     id: string
+//     name: string
+//     children_categories: IMLCategoryChildren[] | null
+// }

@@ -1,5 +1,5 @@
 import { AxiosInstance, AxiosRequestConfig } from "axios"
-import { resolve } from "path"
+import { readFileSync } from "fs"
 import { Inject, Service } from "typedi"
 import { Logger } from "winston"
 import config from "../config"
@@ -14,9 +14,8 @@ import events from "../subscribers/events"
 
 @Service()
 export default class StagingService {
-    // private mlCategories: { id: string, name: string }[]
-    // private mlCategoriesIds: string[]
-
+    private allowedCategories: { category_ids: string[] }
+    
     constructor(
         @Inject('axios') private axios: AxiosInstance,
         @Inject('logger') private logger: Logger,
@@ -24,133 +23,8 @@ export default class StagingService {
         @Inject('userModel') private userModel: Models.UserModel,
         @EventDispatcher() private eventDispatcher
     ) {
-        // this.mlCategories = [
-        //     {
-        //         "id": "MCO1747",
-        //         "name": "Accesorios para Vehículos"
-        //     },
-        //     {
-        //         "id": "MCO441917",
-        //         "name": "Agro"
-        //     },
-        //     {
-        //         "id": "MCO1403",
-        //         "name": "Alimentos y Bebidas"
-        //     },
-        //     {
-        //         "id": "MCO1071",
-        //         "name": "Animales y Mascotas"
-        //     },
-        //     {
-        //         "id": "MCO1367",
-        //         "name": "Antigüedades y Colecciones"
-        //     },
-        //     {
-        //         "id": "MCO1368",
-        //         "name": "Arte, Papelería y Mercería"
-        //     },
-        //     {
-        //         "id": "MCO1384",
-        //         "name": "Bebés"
-        //     },
-        //     {
-        //         "id": "MCO1246",
-        //         "name": "Belleza y Cuidado Personal"
-        //     },
-        //     {
-        //         "id": "MCO40433",
-        //         "name": "Boletas para Espectáculos"
-        //     },
-        //     {
-        //         "id": "MCO1039",
-        //         "name": "Cámaras y Accesorios"
-        //     },
-        //     {
-        //         "id": "MCO1743",
-        //         "name": "Carros, Motos y Otros"
-        //     },
-        //     {
-        //         "id": "MCO1051",
-        //         "name": "Celulares y Teléfonos"
-        //     },
-        //     {
-        //         "id": "MCO1648",
-        //         "name": "Computación"
-        //     },
-        //     {
-        //         "id": "MCO1144",
-        //         "name": "Consolas y Videojuegos"
-        //     },
-        //     {
-        //         "id": "MCO1276",
-        //         "name": "Deportes y Fitness"
-        //     },
-        //     {
-        //         "id": "MCO5726",
-        //         "name": "Electrodomésticos"
-        //     },
-        //     {
-        //         "id": "MCO1000",
-        //         "name": "Electrónica, Audio y Video"
-        //     },
-        //     {
-        //         "id": "MCO175794",
-        //         "name": "Herramientas y Construcción"
-        //     },
-        //     {
-        //         "id": "MCO1574",
-        //         "name": "Hogar y Muebles"
-        //     },
-        //     {
-        //         "id": "MCO1499",
-        //         "name": "Industrias y Oficinas"
-        //     },
-        //     {
-        //         "id": "MCO1459",
-        //         "name": "Inmuebles"
-        //     },
-        //     {
-        //         "id": "MCO1182",
-        //         "name": "Instrumentos Musicales"
-        //     },
-        //     {
-        //         "id": "MCO1132",
-        //         "name": "Juegos y Juguetes"
-        //     },
-        //     {
-        //         "id": "MCO3025",
-        //         "name": "Libros, Revistas y Comics"
-        //     },
-        //     {
-        //         "id": "MCO1168",
-        //         "name": "Música, Películas y Series"
-        //     },
-        //     {
-        //         "id": "MCO118204",
-        //         "name": "Recuerdos, Piñatería y Fiestas"
-        //     },
-        //     {
-        //         "id": "MCO3937",
-        //         "name": "Relojes y Joyas"
-        //     },
-        //     {
-        //         "id": "MCO1430",
-        //         "name": "Ropa y Accesorios"
-        //     },
-        //     {
-        //         "id": "MCO180800",
-        //         "name": "Salud y Equipamiento Médico"
-        //     },
-        //     {
-        //         "id": "MCO1540",
-        //         "name": "Servicios"
-        //     },
-        //     {
-        //         "id": "MCO1953",
-        //         "name": "Otras categorías"
-        //     }
-        // ]
-        // this.mlCategoriesIds = this.mlCategories.map(category => category.id)
+        let rawData = readFileSync(__dirname + '/CATEGORY_IDS.json').toString()
+        this.allowedCategories = JSON.parse(rawData)
     }
 
     public async DeleteItemsByID(currentUser: Partial<IUser>, idInput: string[]): Promise<Partial<IItemDeletedInformation>> {
@@ -183,7 +57,9 @@ export default class StagingService {
         }
     }
 
-    public async GetAllItems({ items }: Partial<IUser>): Promise<IStagingItem[]> {
+    public async GetAllItems({ _id, items }: Partial<IUser>): Promise<IStagingItem[]> {
+        this.logger.debug('Getting all items for user %s and items %o', _id, items)
+
         try {
             const itemRecords = await this.itemModel.find().in('_id', items)
             return itemRecords
@@ -320,17 +196,37 @@ export default class StagingService {
                 features,
                 imageUrlList
             } = itemDTO
+
+            if (price <= 0) {
+                throw new Error('The item must have a price bigger than 0')
+            }
     
+            const matchedCategory = await this.matchCategory(productTitle)
+
+            if (!matchedCategory) {
+                throw new Error(`This product's category is not allowed. Try another item.`)
+            }
+
+            const { category_id, attributes } = matchedCategory as IMLPredictedCategory
+
+            const secureTitle = this.cutProductTitle(productTitle)
+    
+            // const secureDescription = this.convertToPlainText(productDescription)
+            let secureDescription = ''
+            if (productDescription.trim()) {
+                secureDescription = this.convertToPlainText(productDescription)
+            } else {
+                secureDescription = this.convertToPlainText(features.join('. '))
+            }
+            
             const convertedPrice = this.convertPrice(price, exchangeRate, { custom_parameters })
     
             const convertedQuantity = this.generateQuantity(warehouseAvailability, custom_parameters.default_quantity)
     
-            const { category_id, attributes } = await this.matchCategory(productTitle)
-    
             const convertedAttributes = this.convertAttributes({ attributes })
             
             const convertedItem: IMLItemInputDTO = {
-                title: productTitle,
+                title: secureTitle,
                 category_id,
                 price: convertedPrice,
                 // variations,
@@ -339,7 +235,7 @@ export default class StagingService {
                 buying_mode: custom_parameters.buying_mode,
                 condition: custom_parameters.item_condition,
                 listing_type_id: custom_parameters.listing_type_id,
-                description: { plain_text: productDescription },
+                description: { plain_text: secureDescription },
                 video_id: 'YOUTUBE_ID_HERE',
                 tags: features,
                 sale_terms: custom_parameters.sale_terms,
@@ -388,18 +284,32 @@ export default class StagingService {
         return convertedPrice
     }
 
-    private async matchCategory(amazonProductTitle: string) : Promise<IMLPredictedCategory> {
+    private async matchCategory(amazonProductTitle: string) : Promise<IMLPredictedCategory | boolean> {
         const requestMethod = 'get'
         const requestConfig: AxiosRequestConfig = {
-            url: `/sites/MCO/domain_discovery/search?q=${amazonProductTitle}`,
+            url: `/sites/MCO/domain_discovery/search?q=${encodeURIComponent(amazonProductTitle)}`,
             method: requestMethod,
             baseURL: config.mlAPI.url
         }
 
         try {
-            const response: { data: IMLPredictedCategory } = await this.axios(requestConfig)
-            this.logger.debug('The matched category for product %s is %o', amazonProductTitle, response.data)
-            return response.data[0]
+            const response: { data: IMLPredictedCategory[] } = await this.axios(requestConfig)
+
+            let result: IMLPredictedCategory | boolean
+            response.data.forEach((predictedCategory, index) => {
+                if (this.isAllowedCategory(predictedCategory.category_id)) {
+                    result = predictedCategory
+                    return true
+                } else if (index === response.data.length - 1) {
+                    result = false
+                    return false
+                }
+            })
+
+            if(result) {
+                this.logger.debug('The matched category for product %s is %o', amazonProductTitle, result)
+            }
+            return result
         } catch (error) {
             this.logger.error('Method StagingService.matchCategory failed: %o', error)
             throw error
@@ -417,7 +327,13 @@ export default class StagingService {
         
         try {
             const itemRecord = await this.itemModel.findById(_id).select('ml_data')
-            const newMLDataInput = Object.assign(itemRecord.ml_data, mlInputData)
+            let newMLDataInput = Object.assign(itemRecord.ml_data, mlInputData)
+            if (mlInputData.title) {
+                newMLDataInput = { ...newMLDataInput, title: this.cutProductTitle(mlInputData.title) }
+            }
+            if (mlInputData.description.plain_text) {
+                newMLDataInput = { ...newMLDataInput, description: { plain_text: this.convertToPlainText(mlInputData.description.plain_text) } }
+            }
             const updatedItemRecord = await this.itemModel.findByIdAndUpdate(_id, { $set: {
                 ml_data: newMLDataInput
             } }, { new: true })
@@ -427,5 +343,62 @@ export default class StagingService {
             this.logger.error('Method StagingService.UpdateMLInputData failed: %o', error)
             throw error
         }
+    }
+
+    private isAllowedCategory(category: string): boolean {
+        return this.allowedCategories.category_ids.includes(category)
+    }
+
+    public GetAllowedCategoriesIds(): string[] {
+        try {
+            return this.allowedCategories.category_ids
+        } catch (error) {
+            throw error
+        }
+    }
+
+    private cutProductTitle(productTitle: string): string {
+        if (productTitle.length > 60) {
+            let cutTitle = productTitle.slice(0, 60)
+            if (productTitle[60] !== ' ') {
+                while(cutTitle[cutTitle.length - 1] !== ' ') {
+                    cutTitle = cutTitle.slice(0, cutTitle.length - 1)
+                }
+            }
+
+            return cutTitle.trim()
+        } else return productTitle
+    }
+
+    private convertToPlainText(text: string): string {
+        return text.split('').map(char => {
+            let code = char.charCodeAt(0)
+    
+            if (
+                (code < 32)
+                || ((code === 42) || (code === 43))
+                || ((code > 59) && (code < 63))
+                || ((code > 90) && (code < 97))
+                || (code === 241 || (code === 209))
+                || (code > 122)
+            ) {
+                return ' '
+            }
+            
+            switch (code) {
+                case 35:
+                    return ' '
+                case 47:
+                    return '-'
+                case 64:
+                    return 'at'
+                case 209:
+                    return char
+                case 241:
+                    return char
+                default:
+                    return char
+            }
+        }).join('').replace(/\s{2,}/g, ' ').trim()
     }
 }

@@ -5,6 +5,7 @@ import { IUserInputDTO } from '../../interfaces/IUser'
 import middlewares from '../middlewares'
 import { celebrate, Joi } from 'celebrate'
 import { Logger } from 'winston'
+// import ListService from '../../services/mercado-libre/list'
 
 const route = Router()
 
@@ -67,4 +68,20 @@ export default (app: Router) => {
             return next(e)
         }
     })
+
+    /* Temporary route to get children categories */
+    // route.get('/categories', async (req: Request, res: Response, next: NextFunction) => {
+    //     const logger: Logger = Container.get('logger')
+    //     logger.debug('Calling Categories endpoint with query: %o', req.query)
+    //     try {
+    //         const listOfCategories = req.query.list
+    //         const listServiceInstance = Container.get(ListService)
+
+    //         const populatedCategories = await listServiceInstance.GetCategoriesChildren(listOfCategories as string)
+    //         return res.json({ populatedCategories }).status(200)
+    //     } catch (error) {
+    //         logger.error('Error: %o', error)
+    //         return next(error)
+    //     }
+    // })
 }

@@ -58,6 +58,14 @@ const StageQueryType = new GraphQLObjectType ({
                 const recordedItems = await stagingServiceInstance.SearchItemsByKeyword(args.keyword)
                 return recordedItems
             }
+        },
+        getAllowedCategoriesIDs: {
+            type: new GraphQLList(GraphQLString),
+            resolve() {
+                const stagingServiceInstance = Container.get(StagingService)
+                const allowedIds = stagingServiceInstance.GetAllowedCategoriesIds()
+                return allowedIds
+            }
         }
     }
 })

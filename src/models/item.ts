@@ -277,8 +277,7 @@ const Item = new mongoose.Schema(
             // },
 
             productDescription: {
-                type: String,
-                required: true
+                type: String
             },
 
             productDetails: {
