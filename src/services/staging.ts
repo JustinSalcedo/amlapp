@@ -68,6 +68,28 @@ export default class StagingService {
         }
     }
 
+    public async GetAllPublishedItems({ _id, items }: Partial<IUser>): Promise<IStagingItem[]> {
+        this.logger.debug('Getting all published items for user %s and items %o', _id, items)
+
+        try {
+            const itemRecords = await this.itemModel.find().nor([{ ml_id: null }, { ml_id: { $exists: false } }]).in('_id', items)
+            return itemRecords
+        } catch (error) {
+            throw error
+        }
+    }
+
+    public async GetAllNoPublishedItems({ _id, items }: Partial<IUser>): Promise<IStagingItem[]> {
+        this.logger.debug('Getting all no-published items for user %s and items %o', _id, items)
+
+        try {
+            const itemRecords = await this.itemModel.find().and([{ ml_id: null }, { ml_id: { $exists: false } }]).in('_id', items)
+            return itemRecords
+        } catch (error) {
+            throw error
+        }
+    }
+
     public async SearchItemsByKeyword(keyword: string): Promise<IStagingItem[]> {
         try {
             const regExpression = new RegExp(keyword, 'i')

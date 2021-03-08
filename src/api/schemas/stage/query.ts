@@ -66,6 +66,22 @@ const StageQueryType = new GraphQLObjectType ({
                 const allowedIds = stagingServiceInstance.GetAllowedCategoriesIds()
                 return allowedIds
             }
+        },
+        getPublishedItems: {
+            type: new GraphQLList(StagedItemType),
+            async resolve(parentObj, args, context) {
+                const stagingServiceInstance = Container.get(StagingService)
+                const publishedItems = stagingServiceInstance.GetAllPublishedItems(context.currentUser)
+                return publishedItems
+            }
+        },
+        getNoPublishedItems: {
+            type: new GraphQLList(StagedItemType),
+            async resolve(parentObj, args, context) {
+                const stagingServiceInstance = Container.get(StagingService)
+                const noPublishedItems = stagingServiceInstance.GetAllNoPublishedItems(context.currentUser)
+                return noPublishedItems
+            }
         }
     }
 })
