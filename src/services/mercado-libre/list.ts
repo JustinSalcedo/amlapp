@@ -6,6 +6,7 @@ import { IMLSellerItem, IMLSellerItemDTO } from '../../interfaces/IMLSellerItems
 import { IUser } from '../../interfaces/IUser'
 import config from '../../config'
 import { IStagingItem } from '../../interfaces/IStagingItem'
+import e from 'express'
 // import { IMLCategoryChildren } from '../../interfaces/IMLCategory'
 
 @Service()
@@ -213,6 +214,103 @@ export default class ListService {
             const itemRecords = await this.itemModel.find().or([{ ml_id: null }, { ml_id: { $exists: false } }]).in('_id', currentUser.items)
             const publishedItems = await this.addManyItems(currentUser, itemRecords)
             return publishedItems
+        } catch (error) {
+            throw error
+        }
+    }
+
+    public async UnpublishItemsByID(currentUser: Partial<IUser>, idInput: string[], deleteItems?: boolean): Promise<IMLItem[]> {
+        this.logger.debug('Unpublishing items for user %s', currentUser._id)
+        
+        try {
+            const itemRecords = await this.itemModel.find().in('_id', idInput)
+            let updatedRecords = []
+            if(deleteItems) {
+                updatedRecords = itemRecords
+            } else {
+                updatedRecords = itemRecords.map(async record => {
+                    const updatedRecord = await this.itemModel.findByIdAndUpdate(record._id, { $set: {
+                        allow_sync: false,
+                        ml_data: { ...record.ml_data, available_quantity: 0 }
+                    } }, { new: true })
+                    
+                    return updatedRecord
+                })
+            }
+            
+            const resolvedRecords = await Promise.all(updatedRecords)
+            const updatedMLItems = await this.updateManyItems(currentUser, resolvedRecords)
+            if (deleteItems) {
+                await this.itemModel.deleteMany({ _id: { $in: idInput } })
+            }
+            return updatedMLItems
+        } catch (error) {
+            throw error
+        }
+    }
+
+    private async updateManyItems(currentUser: Partial<IUser>, itemRecords: IStagingItem[]): Promise<IMLItem[]> {
+        try {
+            const queuedItems = itemRecords.map(async record => {
+                const updated = await this.updateItem(currentUser, record)
+                return updated
+            })
+
+            return Promise.all(queuedItems)
+        } catch (error) {
+            throw error
+        }
+    }
+
+    private async updateItem(currentUser: Partial<IUser>, { ml_data, ml_id }: Partial<IStagingItem>): Promise<IMLItem> {
+        const {
+            title,
+            category_id,
+            price,
+            official_store_id,
+            currency_id,
+            available_quantity,
+            buying_mode,
+            condition,
+            listing_type_id,
+            description,
+            video_id,
+            tags,
+            sale_terms,
+            pictures,
+            attributes
+        } = ml_data
+        
+        const requestMethod = 'put'
+        const requestConfig: AxiosRequestConfig = {
+            url: `/items/${ml_id}`,
+            method: requestMethod,
+            baseURL: config.mlAPI.url,
+            headers: {
+                'Authorization': `Bearer ${currentUser.config.ml_token.access_token}`,
+            },
+            data: {
+                title,
+                category_id,
+                price,
+                official_store_id,
+                currency_id,
+                available_quantity,
+                buying_mode,
+                condition,
+                listing_type_id,
+                description,
+                video_id,
+                tags,
+                sale_terms,
+                pictures,
+                attributes 
+            } as IMLItemInputDTO
+        }
+        
+        try {
+            const response: { data: IMLItem } = await this.axios(requestConfig)
+            return response.data
         } catch (error) {
             throw error
         }

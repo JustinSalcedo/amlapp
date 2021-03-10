@@ -236,9 +236,9 @@ export default class StagingService {
             // const secureDescription = this.convertToPlainText(productDescription)
             let secureDescription = ''
             if (productDescription.trim()) {
-                secureDescription = this.convertToPlainText(productDescription)
+                secureDescription = this.convertToPlainText(this.filterInvalidStrings(productDescription))
             } else {
-                secureDescription = this.convertToPlainText(features.join('. '))
+                secureDescription = this.convertToPlainText(this.filterInvalidStrings(features.join('. ')))
             }
             
             const convertedPrice = this.convertPrice(price, exchangeRate, { custom_parameters })
@@ -354,7 +354,7 @@ export default class StagingService {
                 newMLDataInput = { ...newMLDataInput, title: this.cutProductTitle(mlInputData.title) }
             }
             if (mlInputData.description.plain_text) {
-                newMLDataInput = { ...newMLDataInput, description: { plain_text: this.convertToPlainText(mlInputData.description.plain_text) } }
+                newMLDataInput = { ...newMLDataInput, description: { plain_text: this.convertToPlainText(this.filterInvalidStrings(mlInputData.description.plain_text)) } }
             }
             const updatedItemRecord = await this.itemModel.findByIdAndUpdate(_id, { $set: {
                 ml_data: newMLDataInput
@@ -422,5 +422,41 @@ export default class StagingService {
                     return char
             }
         }).join('').replace(/\s{2,}/g, ' ').trim()
+    }
+
+    private filterInvalidStrings(text: string): string {
+        return text
+            .replace(/\d{3}-\d{8}|\d{4}-\d{7}|\(\d{2,4}\)\d{6,7}|\(\d{2,4}\) \d{3} \d{4}|\(\d{2,4}\)\.\d{3}\.\d{4}|\(\d{2,4}\)-\d{3}-\d{4}|\d{2,4} \d{3,7} \d{0,4}|\d{2,4}-\d{3,7}-\d{0,4}|\d{10}|\+\d{1,3}\d{10}|\(\d{2,3}\) \d{3,4}-\d{3,4}|\+\d{1,3} \(\d{2,3}\) \d{3,4}-\d{3,4}/g, '-')
+            .replace(/[a-zA-Z0-9-_]{1,}@[a-zA-Z0-9-_]{1,}\.[a-zA-Z]{1,}/g, '-')
+            .replace(/\b((?:[a-z][\w-]+:(?:\/{1,3}|[a-z0-9%])|www\d{0,3}[.]|[a-z0-9.\-]+[.][a-z]{2,4}\/)(?:[^\s()<>]+|\(([^\s()<>]+|(\([^\s()<>]+\)))*\))+(?:\(([^\s()<>]+|(\([^\s()<>]+\)))*\)|[^\s`!()\[\]{};:'".,<>?«»“”‘’]))|[a-zA-Z0-9-_]{1,}\.[a-zA-Z]{1,}/g, '-')
+
+        /* Matchs for
+        (021)1234567
+        (123) 456 7899
+        (123).456.7899
+        (123)-456-7899
+        123-456-7899
+        123 456 7899
+        1234567899
+        0511-4405222
+        021-87888822
+        +8613012345678
+        (442) 217-7562
+        +1 (442) 217-7562
+
+        test@email.com
+        test1@email.net
+        web@lifether.com
+
+        regexbuddy.com
+        www.regexbuddy.com
+        http://regexbuddy.com
+        http://www.regexbuddy.com
+        http://www.regexbuddy.com/
+        http://www.regexbuddy.com/index.html
+        http://www.regexbuddy.com/index.html?source=library
+        http://www.regexbuddy.com/download.html.
+        www.domain.com/quoted
+        */
     }
 }

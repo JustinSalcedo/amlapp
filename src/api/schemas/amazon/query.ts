@@ -9,7 +9,7 @@ import { SearchResultsType, SearchOptionsInputType, ItemDetailsType } from './ty
 const AmazonQueryType = new GraphQLObjectType({
     name: 'AmazonQueryType',
     fields: {
-        itemsSearch: {
+        searchItemsByKeyword: {
             type: SearchResultsType,
             args: {
                 searchOptions: { type: SearchOptionsInputType }
@@ -25,7 +25,7 @@ const AmazonQueryType = new GraphQLObjectType({
                 return searchResults
             }
         },
-        itemDetailsByURL: {
+        getItemByURL: {
             type: ItemDetailsType,
             args: {
                 productUrl: { type: new GraphQLNonNull(GraphQLString) },
@@ -42,7 +42,7 @@ const AmazonQueryType = new GraphQLObjectType({
                 return itemDetails
             }
         },
-        itemDetailsByASIN: {
+        getItemByASIN: {
             type: ItemDetailsType,
             args: {
                 asin: { type: new GraphQLNonNull(GraphQLString) },

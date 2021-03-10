@@ -19,17 +19,6 @@ import {
 const MLMutationType = new GraphQLObjectType({
     name: 'MLMutationType',
     fields: {
-        // listItem: {
-        //     type: ItemType,
-        //     args: {
-        //         item: { type: new GraphQLNonNull(ItemDataInputType) }
-        //     },
-        //     async resolve(parentObj, args, context) {
-        //         const listServiceInstance = Container.get(ListService)
-        //         const item = await listServiceInstance.AddItem(args.item, context.currentUser)
-        //         return item
-        //     }
-        // },
         publishItemsByID: {
             type: new GraphQLList(ItemType),
             args: {
@@ -49,7 +38,28 @@ const MLMutationType = new GraphQLObjectType({
                 return publishedItems
             }
         },
-        
+        unpublishItemsByID: {
+            type: new GraphQLList(ItemType),
+            args: {
+                ids: { type: new GraphQLList(GraphQLString) }
+            },
+            async resolve(parentObj, args, context) {
+                const listServiceInstance = Container.get(ListService)
+                const unpublishedItems = await listServiceInstance.UnpublishItemsByID(context.currentUser, args.ids)
+                return unpublishedItems
+            }
+        },
+        unpublishAndDeleteItemsByID: {
+            type: new GraphQLList(ItemType),
+            args: {
+                ids: { type: new GraphQLList(GraphQLString) }
+            },
+            async resolve(parentObj, args, context) {
+                const listServiceInstance = Container.get(ListService)
+                const unpublishedItems = await listServiceInstance.UnpublishItemsByID(context.currentUser, args.ids, true)
+                return unpublishedItems
+            }
+        }
     }
 })
 

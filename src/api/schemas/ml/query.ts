@@ -19,21 +19,10 @@ import {
 const MLQueryType = new GraphQLObjectType({
     name: 'MLQueryType',
     fields: {
-        itemDetails: {
-            type: ItemType,
-            args: {
-                id: { type: new GraphQLNonNull(GraphQLString) }
-            },
-            async resolve(parentObj, args, context) {
-                const listServiceInstance = Container.get(ListService)
-                const item = await listServiceInstance.GetItemDetails(args.id, context.currentUser)
-                return item
-            }
-        },
-        itemsDetails: {
+        getItemsByID: {
             type: new GraphQLList(ItemType),
             args: {
-                ids: { type: new GraphQLList(new GraphQLNonNull(GraphQLString)) }
+                ids: { type: new GraphQLNonNull(new GraphQLList(GraphQLString)) }
             },
             async resolve(parentObj, args, context) {
                 const listServiceInstance = Container.get(ListService)
@@ -41,7 +30,7 @@ const MLQueryType = new GraphQLObjectType({
                 return items
             }
         },
-        itemsIDsBySeller: {
+        getAllItemIDs: {
             type: SellerItemsIDsType,
             args: {
                 status: { type: GraphQLString },
@@ -58,7 +47,7 @@ const MLQueryType = new GraphQLObjectType({
                 return sellerItemsIds
             }
         },
-        itemsDetailsBySeller: {
+        getAllItems: {
             type: new GraphQLList(ItemType),
             args: {
                 status: { type: GraphQLString },
