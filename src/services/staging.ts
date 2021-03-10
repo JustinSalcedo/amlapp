@@ -27,18 +27,6 @@ export default class StagingService {
         this.allowedCategories = JSON.parse(rawData)
     }
 
-    public async DeleteItemsByID(currentUser: Partial<IUser>, idInput: string[]): Promise<Partial<IItemDeletedInformation>> {
-        try {
-            const deletedItemsInformation = await this.itemModel.deleteMany({ _id: { $in: idInput } })
-
-            this.eventDispatcher.dispatch(events.item.delete, { currentUser, itemIds: idInput })
-
-            return deletedItemsInformation
-        } catch (error) {
-            throw error
-        }
-    }
-
     public async GetItemsByID(idInput: string[]): Promise<IStagingItem[]> {
         try {
             const itemRecords = await this.itemModel.find().in('_id', idInput)
@@ -115,33 +103,14 @@ export default class StagingService {
         }
     }
 
-    private async getExchangeRate({ custom_parameters }: Partial<IUser>, itemsInputDTO: IAmazonMiniItem[]): Promise<{ base: string, quote: string, rate: number }> {
-        let base = itemsInputDTO
-            .map(item => {
-                if (item.currency) {
-                    return item.currency.code
-                } else return 'USD'
-            })
-            .reduce((acc, currentValue) => {
-                if (acc === currentValue) {
-                    return currentValue
-                } else throw new Error('The item list must have equal currencies')
-            })
-
-        const quote = custom_parameters.local_currency_code
-
-        const requestMethod = 'get'
-        const requestConfig: AxiosRequestConfig = {
-            url: `/currency_conversions/search?from=${base}&to=${quote}`,
-            method: requestMethod,
-            baseURL: config.mlAPI.url
-        }
-        
+    public async DeleteItemsByID(currentUser: Partial<IUser>, idInput: string[]): Promise<Partial<IItemDeletedInformation>> {
         try {
-            const response: { data: IMLExchangeRates } = await this.axios(requestConfig)
-            return { base, quote, rate: response.data.rate }
+            const deletedItemsInformation = await this.itemModel.deleteMany({ _id: { $in: idInput } })
+
+            this.eventDispatcher.dispatch(events.item.delete, { currentUser, itemIds: idInput })
+
+            return deletedItemsInformation
         } catch (error) {
-            this.logger.error(error)
             throw error
         }
     }
@@ -149,7 +118,7 @@ export default class StagingService {
     public async AutoStageItemsByASIN(currentUser: Partial<IUser>, asins: string[]): Promise<IStagingItem[]> {
         try {
             const amazonItems = asins.map(async asin => {
-                let productUrl = `https://www.amazon.com/dp/${asin}`
+                let productUrl = `https://www.amazon.com/-/es/dp/${asin}`
                 let url = `/amz/amazon-lookup-product?url=${productUrl}`
 
                 const requestMethod = 'get'
@@ -205,6 +174,82 @@ export default class StagingService {
         }
     }
 
+    public async UpdateMLInputData({ _id }: Partial<IStagingItem>, mlInputData: Partial<IMLItemInputDTO>): Promise<IStagingItem> {
+        this.logger.debug('Updating item %s', _id)
+        
+        try {
+            const itemRecord = await this.itemModel.findById(_id).select('ml_data')
+            let newMLDataInput = Object.assign(itemRecord.ml_data, mlInputData)
+            if (mlInputData.title) {
+                newMLDataInput = { ...newMLDataInput, title: this.cutProductTitle(mlInputData.title) }
+            }
+            if (mlInputData.description.plain_text) {
+                newMLDataInput = { ...newMLDataInput, description: { plain_text: this.convertToPlainText(this.filterInvalidStrings(mlInputData.description.plain_text)) } }
+            }
+            const updatedItemRecord = await this.itemModel.findByIdAndUpdate(_id, { $set: {
+                ml_data: newMLDataInput
+            } }, { new: true })
+
+            return updatedItemRecord
+        } catch (error) {
+            this.logger.error('Method StagingService.UpdateMLInputData failed: %o', error)
+            throw error
+        }
+    }
+
+    public GetAllowedCategoriesIds(): string[] {
+        try {
+            return this.allowedCategories.category_ids
+        } catch (error) {
+            throw error
+        }
+    }
+
+    public async switchItemsSyncState(idInput: string[], allow_sync: boolean): Promise<Partial<IStagingItem>[]> {
+        try {
+            const updatedRecords = await this.itemModel.updateMany({ _id: { $in: idInput } }, { $set: {
+                allow_sync
+            } }, { new: true }).select('_id allow_sync')
+
+            return updatedRecords
+        } catch (error) {
+            throw error
+        }
+    }
+
+    ///////// Private methods ////////
+
+    private async getExchangeRate({ custom_parameters }: Partial<IUser>, itemsInputDTO: IAmazonMiniItem[]): Promise<{ base: string, quote: string, rate: number }> {
+        let base = itemsInputDTO
+            .map(item => {
+                if (item.currency) {
+                    return item.currency.code
+                } else return 'USD'
+            })
+            .reduce((acc, currentValue) => {
+                if (acc === currentValue) {
+                    return currentValue
+                } else throw new Error('The item list must have equal currencies')
+            })
+
+        const quote = custom_parameters.local_currency_code
+
+        const requestMethod = 'get'
+        const requestConfig: AxiosRequestConfig = {
+            url: `/currency_conversions/search?from=${base}&to=${quote}`,
+            method: requestMethod,
+            baseURL: config.mlAPI.url
+        }
+        
+        try {
+            const response: { data: IMLExchangeRates } = await this.axios(requestConfig)
+            return { base, quote, rate: response.data.rate }
+        } catch (error) {
+            this.logger.error(error)
+            throw error
+        }
+    }
+
     private async convertItem({ custom_parameters }: Partial<IUser>, itemDTO: IAmazonMiniItem, exchangeRate: { base: string, quote: string, rate: number }): Promise<IMLItemInputDTO> {
         try {
             const {
@@ -233,7 +278,6 @@ export default class StagingService {
 
             const secureTitle = this.cutProductTitle(productTitle)
     
-            // const secureDescription = this.convertToPlainText(productDescription)
             let secureDescription = ''
             if (productDescription.trim()) {
                 secureDescription = this.convertToPlainText(this.filterInvalidStrings(productDescription))
@@ -344,39 +388,8 @@ export default class StagingService {
         } else return 0
     }
 
-    public async UpdateMLInputData({ _id }: Partial<IStagingItem>, mlInputData: Partial<IMLItemInputDTO>): Promise<IStagingItem> {
-        this.logger.debug('Updating item %s', _id)
-        
-        try {
-            const itemRecord = await this.itemModel.findById(_id).select('ml_data')
-            let newMLDataInput = Object.assign(itemRecord.ml_data, mlInputData)
-            if (mlInputData.title) {
-                newMLDataInput = { ...newMLDataInput, title: this.cutProductTitle(mlInputData.title) }
-            }
-            if (mlInputData.description.plain_text) {
-                newMLDataInput = { ...newMLDataInput, description: { plain_text: this.convertToPlainText(this.filterInvalidStrings(mlInputData.description.plain_text)) } }
-            }
-            const updatedItemRecord = await this.itemModel.findByIdAndUpdate(_id, { $set: {
-                ml_data: newMLDataInput
-            } }, { new: true })
-
-            return updatedItemRecord
-        } catch (error) {
-            this.logger.error('Method StagingService.UpdateMLInputData failed: %o', error)
-            throw error
-        }
-    }
-
     private isAllowedCategory(category: string): boolean {
         return this.allowedCategories.category_ids.includes(category)
-    }
-
-    public GetAllowedCategoriesIds(): string[] {
-        try {
-            return this.allowedCategories.category_ids
-        } catch (error) {
-            throw error
-        }
     }
 
     private cutProductTitle(productTitle: string): string {

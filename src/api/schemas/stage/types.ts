@@ -31,6 +31,14 @@ const StagedItemType = new GraphQLObjectType({
     }
 })
 
+const StagedItemSyncInfoType = new GraphQLObjectType({
+    name: 'StagedItemSyncInfoType',
+    fields: {
+        _id: { type: GraphQLString },
+        allow_sync: { type: GraphQLBoolean },
+    }
+})
+
 const DeletedItemsInfoType = new GraphQLObjectType({
     name: 'DeletedItemsInfoType',
     fields: {
@@ -72,6 +80,7 @@ const CustomParametersType = new GraphQLObjectType({
 
 export {
     StagedItemType,
+    StagedItemSyncInfoType,
     DeletedItemsInfoType,
     CustomParametersType,
     CustomSaleTermsInputType

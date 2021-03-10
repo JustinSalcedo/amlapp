@@ -191,16 +191,16 @@ const ItemMinimumDetailsInputType = new GraphQLInputObjectType({
 const ItemMinimumDetailsType = new GraphQLObjectType({
     name: 'ItemMinimumDetailsType',
     fields: {
-        asin: { type: new GraphQLNonNull(GraphQLString) },
+        asin: { type: GraphQLString },
         currency: { type: CurrencyType },
         features: { type: new GraphQLList(GraphQLString) },
-        imageUrlList: { type: new GraphQLNonNull(new GraphQLList(GraphQLString)) },
-        price: { type: new GraphQLNonNull(GraphQLFloat) },
-        productDescription: { type: new GraphQLNonNull(GraphQLString) },
+        imageUrlList: { type: new GraphQLList(GraphQLString) },
+        price: { type: GraphQLFloat },
+        productDescription: { type: GraphQLString },
         productDetails: { type: new GraphQLList(ProductDetailsType) },
-        productTitle: { type: new GraphQLNonNull(GraphQLString )},
+        productTitle: { type: GraphQLString},
         variations: { type: new GraphQLList(AmazonVariationType) },
-        warehouseAvailability: { type: GraphQLNonNull(GraphQLString) }
+        warehouseAvailability: { type: GraphQLString }
     }
 })
 

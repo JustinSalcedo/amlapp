@@ -14,7 +14,7 @@ export default class SearchService {
     ) {}
 
     public async GetItemDetailsByASIN(currentUser: Partial<IUser>, { asin, merchant }: { asin: string, merchant: string | null }): Promise<IAmazonItem> {
-        let productUrl = `https://www.amazon.com/dp/${asin}`
+        let productUrl = `https://www.amazon.com/-/es/dp/${asin}`
         const itemDetails = await this.GetItemDetailsByURL(currentUser, { productUrl, merchant })
         return itemDetails
     }

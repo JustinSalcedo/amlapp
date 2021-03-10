@@ -15,6 +15,7 @@ import {
     CustomParametersType,
     CustomSaleTermsInputType,
     DeletedItemsInfoType,
+    StagedItemSyncInfoType,
     StagedItemType
 } from './types'
 
@@ -90,6 +91,28 @@ const StageMutationType = new GraphQLObjectType ({
                 const stagingServiceInstance = Container.get(StagingService)
                 const updatedParameters = await stagingServiceInstance.SetParameters(context.currentUser, args)
                 return updatedParameters
+            }
+        },
+        turnItemsSyncOn: {
+            type: new GraphQLList(StagedItemSyncInfoType),
+            args: {
+                ids: { type: new GraphQLNonNull(new GraphQLList(GraphQLString)) }
+            },
+            async resolve(parentObj, args) {
+                const stagingServiceInstance = Container.get(StagingService)
+                const syncItems = stagingServiceInstance.switchItemsSyncState(args.ids, true)
+                return syncItems
+            }
+        },
+        turnItemsSyncOff: {
+            type: new GraphQLList(StagedItemSyncInfoType),
+            args: {
+                ids: { type: new GraphQLNonNull(new GraphQLList(GraphQLString)) }
+            },
+            async resolve(parentObj, args) {
+                const stagingServiceInstance = Container.get(StagingService)
+                const unsyncItems = stagingServiceInstance.switchItemsSyncState(args.ids, false)
+                return unsyncItems
             }
         }
     }
