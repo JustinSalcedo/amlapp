@@ -2,6 +2,9 @@
   "name": "amlapp",
   "version": "0.2.0",
   "description": "Import products from Amazon and republish on Mercado Libre",
+  "engines": {
+    "node": "14.x"
+  },
   "main": "src/app.ts",
   "scripts": {
     "build": "tsc",
