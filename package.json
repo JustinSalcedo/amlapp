@@ -9,7 +9,8 @@
   "scripts": {
     "build": "tsc",
     "start": "nodemon",
-    "inspect": "nodemon --inspect src/app.ts"
+    "inspect": "nodemon --inspect src/app.ts",
+    "launch": "node build/app.js"
   },
   "repository": {
     "type": "git",
