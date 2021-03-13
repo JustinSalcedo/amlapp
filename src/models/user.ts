@@ -57,6 +57,11 @@ const User = new mongoose.Schema(
             }
           },
 
+          last_item_sync_date: {
+            type: Date,
+            default: new Date
+          },
+
           ml_access_date: {
             type: Date
           },
@@ -114,6 +119,11 @@ const User = new mongoose.Schema(
             local_currency_code: {
               type: String,
               required: true
+            },
+
+            sync_concurrency_in_hours: {
+              type: Number,
+              required: true,
             }
           },
 
@@ -135,7 +145,8 @@ const User = new mongoose.Schema(
                 value_name: '90 días'
               }
             ],
-            local_currency_code: 'COP'
+            local_currency_code: 'COP',
+            sync_concurrency_in_hours: 24
           }
         },
 

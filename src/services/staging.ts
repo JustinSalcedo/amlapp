@@ -2,13 +2,14 @@ import { AxiosInstance, AxiosRequestConfig } from "axios"
 import { readFileSync } from "fs"
 import { Inject, Service } from "typedi"
 import { Logger } from "winston"
+import amazon from "../api/routes/amazon"
 import config from "../config"
 import { EventDispatcher } from "../decorators/eventDispatcher"
 import { IAmazonItem, IAmazonMiniItem } from "../interfaces/IAmazonItem"
 import { IMLPredictedCategory } from "../interfaces/IMLCategory"
 import { IMLExchangeRates } from "../interfaces/IMLExchangeRates"
 import { IMLItemInputDTO } from "../interfaces/IMLItem"
-import { IItemDeletedInformation, IStagingItem } from "../interfaces/IStagingItem"
+import { IItemDeletedInformation, IItemUpdatedInformation, IStagingItem } from "../interfaces/IStagingItem"
 import { ICustomParameters, IUser } from "../interfaces/IUser"
 import events from "../subscribers/events"
 
@@ -91,6 +92,11 @@ export default class StagingService {
 
     public async SetParameters({ _id, custom_parameters }: Partial<IUser>, inputParameters: Partial<ICustomParameters>): Promise<ICustomParameters> {
         try {
+            let sync_hours = inputParameters.sync_concurrency_in_hours
+            if (sync_hours > 48 || sync_hours <= 0) {
+                throw new Error('The synchronization concurrency in hours must be an integer within the range of 1 - 48')
+            }
+
             const newCustomParameters = Object.assign(custom_parameters, inputParameters)
 
             const userRecord: IUser = await this.userModel.findByIdAndUpdate(_id, { $set: {
@@ -174,12 +180,45 @@ export default class StagingService {
         }
     }
 
+    public async RestageItems(currentUser: Partial<IUser>, updatedRecords: IStagingItem[]): Promise<IStagingItem[]> {
+        this.logger.debug(`Restaging items for user ${currentUser._id}`)
+
+        try {
+            const amazonItems = updatedRecords.map(record => record.amazon_data)
+            const exchangeRate = await this.getExchangeRate(currentUser, amazonItems)
+            
+            const restagingRecords = updatedRecords.map(async record => {
+                const mlInputItem = await this.convertItem(currentUser, record.amazon_data, exchangeRate)
+                const restagingItemRecord = await this.itemModel.findByIdAndUpdate(record._id, { $set: {
+                    ml_data: mlInputItem,
+                } }, { new: true })
+
+                return restagingItemRecord
+            })
+
+            const resolvedRecords = await Promise.all(restagingRecords)
+            
+            return resolvedRecords
+        } catch (error) {
+            this.logger.error('Error trying to restage items: %o', error)
+            throw error
+        }
+    }
+
     public async UpdateMLInputData({ _id }: Partial<IStagingItem>, mlInputData: Partial<IMLItemInputDTO>): Promise<IStagingItem> {
         this.logger.debug('Updating item %s', _id)
         
         try {
-            const itemRecord = await this.itemModel.findById(_id).select('ml_data')
+            const itemRecord = await this.itemModel.findById(_id).select('ml_data allow_sync ml_id')
             let newMLDataInput = Object.assign(itemRecord.ml_data, mlInputData)
+            if (itemRecord.allow_sync) {
+                throw new Error('You must turn synchronization off to keep your custom changes')
+            }
+
+            if (mlInputData.listing_type_id && itemRecord.ml_id) {
+                throw new Error('Once published, you cannot change the listing type')
+            }
+
             if (mlInputData.title) {
                 newMLDataInput = { ...newMLDataInput, title: this.cutProductTitle(mlInputData.title) }
             }
@@ -205,13 +244,15 @@ export default class StagingService {
         }
     }
 
-    public async switchItemsSyncState(idInput: string[], allow_sync: boolean): Promise<Partial<IStagingItem>[]> {
+    public async SwitchItemsSyncState(idInput: string[], allow_sync: boolean): Promise<IItemUpdatedInformation> {
+        this.logger.debug('Switching sync status for items to state %s', allow_sync)
+        
         try {
-            const updatedRecords = await this.itemModel.updateMany({ _id: { $in: idInput } }, { $set: {
+            const updatedRecordsInfo = await this.itemModel.updateMany({ _id: { $in: idInput } }, { $set: {
                 allow_sync
-            } }, { new: true }).select('_id allow_sync')
+            } })
 
-            return updatedRecords
+            return updatedRecordsInfo
         } catch (error) {
             throw error
         }
@@ -232,6 +273,7 @@ export default class StagingService {
                 } else throw new Error('The item list must have equal currencies')
             })
 
+        base = base ? base : 'USD'
         const quote = custom_parameters.local_currency_code
 
         const requestMethod = 'get'
@@ -256,10 +298,10 @@ export default class StagingService {
                 productTitle,
                 // categories,
                 price,
-                variations,
+                // variations,
                 warehouseAvailability,
                 productDescription,
-                productDetails,
+                // productDetails,
                 features,
                 imageUrlList
             } = itemDTO
@@ -303,7 +345,6 @@ export default class StagingService {
                 listing_type_id: custom_parameters.listing_type_id,
                 description: { plain_text: secureDescription },
                 video_id: 'YOUTUBE_ID_HERE',
-                tags: features,
                 sale_terms: custom_parameters.sale_terms,
                 pictures: this.convertPictureList(imageUrlList),
                 attributes: convertedAttributes  ///////
@@ -383,7 +424,7 @@ export default class StagingService {
     }
 
     private generateQuantity(availability: string, quantityInput: number): number {
-        if (availability === 'In Stock.') {
+        if ((availability === 'In Stock.') || (availability === 'Disponible.')) {
             return quantityInput
         } else return 0
     }

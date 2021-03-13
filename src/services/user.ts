@@ -1,6 +1,6 @@
 import { Inject, Service } from "typedi";
 import { Logger } from "winston";
-import { IUser } from "../interfaces/IUser";
+import { IUser, IUserConfigStatus } from "../interfaces/IUser";
 
 @Service()
 export default class UserService {
@@ -22,6 +22,22 @@ export default class UserService {
             Reflect.deleteProperty(user, 'config')
             Reflect.deleteProperty(user, 'redirect_urls')
             return user
+        } catch (error) {
+            throw error
+        }
+    }
+
+    public monitorUserConfigStatus({ config }: Partial<IUser>): IUserConfigStatus {
+        try {
+            const mercado_libre_authorization = config.ml_token ? true : false
+            const rapidapi_key_added = config.rapidapi_key ? true : false
+            const configuration_complete = (mercado_libre_authorization && rapidapi_key_added) ? true : false
+
+            return {
+                configuration_complete,
+                mercado_libre_authorization,
+                rapidapi_key_added
+            }
         } catch (error) {
             throw error
         }

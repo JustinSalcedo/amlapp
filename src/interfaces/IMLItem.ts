@@ -62,7 +62,6 @@ export interface IMLItemInputDTO {
         plain_text: string
     },
     video_id?: string,   //// Default: "YOUTUBE_ID_HERE"
-    tags: string[],
     sale_terms: attributeInput[],
     pictures: {
         source: string

@@ -417,10 +417,32 @@ const ItemDataType = new GraphQLObjectType({
     }
 })
 
+const DescriptionSnapshotType = new GraphQLObjectType({
+    name: 'DescriptionSnapshotType',
+    fields: {
+        url: { type: GraphQLString },
+        width: { type: GraphQLInt },
+        height: { type: GraphQLInt },
+        status: { type: GraphQLString }
+    }
+})
+
+const MLItemDescriptionType = new GraphQLObjectType({
+    name: 'MLItemDescriptionType',
+    fields: {
+        text: { type: GraphQLString },
+        plain_text: { type: GraphQLString },
+        last_updated: { type: GraphQLString },
+        date_created: { type: GraphQLString },
+        snapshot: { type: DescriptionSnapshotType }
+    }
+})
+
 export {
     ItemType,
     ItemDataInputType,
     ItemDataOptionalInputType,
     ItemDataType,
-    SellerItemsIDsType
+    SellerItemsIDsType,
+    MLItemDescriptionType
 }

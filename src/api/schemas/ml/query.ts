@@ -13,20 +13,20 @@ import {
 } from 'graphql'
 
 import {
-    ItemType, SellerItemsIDsType
+    ItemType, MLItemDescriptionType, SellerItemsIDsType
 } from './types'
 
 const MLQueryType = new GraphQLObjectType({
     name: 'MLQueryType',
     fields: {
-        getItemsByID: {
+        getItemsByMLID: {
             type: new GraphQLList(ItemType),
             args: {
-                ids: { type: new GraphQLNonNull(new GraphQLList(GraphQLString)) }
+                ml_ids: { type: new GraphQLNonNull(new GraphQLList(GraphQLString)) }
             },
             async resolve(parentObj, args, context) {
                 const listServiceInstance = Container.get(ListService)
-                const items = await listServiceInstance.GetItemsDetails(args.ids, context.currentUser)
+                const items = await listServiceInstance.GetItemsDetails(args.ml_ids, context.currentUser)
                 return items
             }
         },
@@ -62,6 +62,17 @@ const MLQueryType = new GraphQLObjectType({
                 const listServiceInstance = Container.get(ListService)
                 const items = await listServiceInstance.GetItemsDetailsBySeller(context.currentUser, options)
                 return items
+            }
+        },
+        getItemDescriptionsByMLID: {
+            type: new GraphQLList(MLItemDescriptionType),
+            args: {
+                ml_ids: { type: new GraphQLNonNull(new GraphQLList(GraphQLString)) }
+            },
+            async resolve(parentObj, args, context) {
+                const listServiceInstance = Container.get(ListService)
+                const itemDescriptions = await listServiceInstance.GetItemDescriptionsByID(context.currentUser, args.ml_ids)
+                return itemDescriptions
             }
         }
     }

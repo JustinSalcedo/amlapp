@@ -17,7 +17,7 @@ export default (app: Router) => {
         middlewares.attachCurrentUser,
         (req: Request, res: Response, next: NextFunction) => {
             const logger: Logger = Container.get('logger')
-            logger.debug('Calling data endpoint with userID: %o', req.currentUser.id)
+            logger.debug('Calling data endpoint with userID: %s', req.currentUser._id)
 
             try {
                 const user = req.currentUser
@@ -76,6 +76,25 @@ export default (app: Router) => {
                 const authServiceInstance = Container.get(AuthService)
                 const { user, token } = await authServiceInstance.ChangePassword(req.currentUser, { oldPassword: current_password, newPassword: new_password })
                 return res.json({ user, token }).status(200)
+            } catch (e) {
+                logger.error('Error: %o', e)
+                return next(e)
+            }
+        }
+    )
+
+    route.get(
+        '/configuration-status',
+        middlewares.isAuth,
+        middlewares.attachCurrentUser,
+        async (req: Request, res: Response, next: NextFunction) => {
+            const logger: Logger = Container.get('logger')
+            logger.debug('Calling configuration status endpoint for user: %o', req.currentUser._id)
+            
+            try {
+                const userServiceInstance = Container.get(UserService)
+                const configuration_status = await userServiceInstance.monitorUserConfigStatus(req.currentUser)
+                return res.json({ configuration_status }).status(200)
             } catch (e) {
                 logger.error('Error: %o', e)
                 return next(e)

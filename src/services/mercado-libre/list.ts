@@ -6,7 +6,8 @@ import { IMLSellerItem, IMLSellerItemDTO } from '../../interfaces/IMLSellerItems
 import { IUser } from '../../interfaces/IUser'
 import config from '../../config'
 import { IStagingItem } from '../../interfaces/IStagingItem'
-import e from 'express'
+import { IMLDescription } from '../../interfaces/IMLDescription'
+import { resolve } from 'path'
 // import { IMLCategoryChildren } from '../../interfaces/IMLCategory'
 
 @Service()
@@ -105,7 +106,7 @@ export default class ListService {
             })
             return { ...response.data, available_orders: newAvailableOrders }
         } catch(error) {
-            this.logger.error(error)
+            this.logger.error('Error trying to fetch all seller items IDs: %o', error)
             throw error
         }
     }
@@ -122,77 +123,32 @@ export default class ListService {
         }
     }
 
-    private async addItem(currentUser: Partial<IUser>, itemInputDTO: IMLItemInputDTO): Promise<IMLItem> {
-        this.logger.debug('Adding item with input \n%o\n and user as \n%s\n', itemInputDTO, currentUser._id)
-        
-        const {
-            title,
-            category_id,
-            price,
-            official_store_id,
-            currency_id,
-            available_quantity,
-            buying_mode,
-            condition,
-            listing_type_id,
-            description,
-            video_id,
-            tags,
-            sale_terms,
-            pictures,
-            attributes
-        } = itemInputDTO
-        
-        const requestMethod = 'post'
-        let requestConfig: AxiosRequestConfig = {
-            url: '/items',
-            method: requestMethod,
-            baseURL: config.mlAPI.url,
-            headers: {
-                'Authorization': `Bearer ${currentUser.config.ml_token.access_token}`,
-            },
-            data: {
-                title,
-                category_id,
-                price,
-                official_store_id,
-                currency_id,
-                available_quantity,
-                buying_mode,
-                condition,
-                listing_type_id,
-                description,
-                video_id,
-                tags,
-                sale_terms,
-                pictures,
-                attributes 
-            } as IMLItemInputDTO
-        }
+    public async GetItemDescriptionsByID(currentUser: Partial<IUser>, mlIdInput: string[]): Promise<IMLDescription[]> {
+        this.logger.debug('Getting item descriptions for user %s', currentUser._id)
 
         try {
-            const response = await this.axios(requestConfig)
-            return response.data
-        } catch (error) {
-            this.logger.error('Error in method ListService.addItem: %o', error)
-            throw error
-        }
-    }
-
-    private async addManyItems(currentUser: Partial<IUser>, itemRecords: IStagingItem[]): Promise<IMLItem[]> {
-        try {
-            const queuedItems = itemRecords.map(async record => {
-                const published = await this.addItem(currentUser, record.ml_data)
-                if (published) {
-                    await this.itemModel.findByIdAndUpdate(record._id, { $set: {
-                        ml_id: published.id
-                    } })
+            const itemDescriptions = mlIdInput.map(async mlId => {
+                const requestConfig: AxiosRequestConfig = {
+                    url: `/items/${mlId}/description`,
+                    method: 'get',
+                    baseURL: config.mlAPI.url,
+                    headers: {
+                        'Authorization': `Bearer ${currentUser.config.ml_token.access_token}`,
+                    }
                 }
-                return published
+                try {
+                    const response: { data: IMLDescription } = await this.axios(requestConfig)
+                    return response.data
+                } catch (error) {
+                    this.logger.error(error)
+                    throw error
+                }
             })
 
-            return Promise.all(queuedItems)
+            const resolvedDescriptions = await Promise.all(itemDescriptions)
+            return resolvedDescriptions
         } catch (error) {
+            this.logger.error('Error trying to get item descriptions: %o', error)
             throw error
         }
     }
@@ -226,7 +182,14 @@ export default class ListService {
             const itemRecords = await this.itemModel.find().in('_id', idInput)
             let updatedRecords = []
             if(deleteItems) {
-                updatedRecords = itemRecords
+                updatedRecords = itemRecords.map(record => {
+                    const parsedRecord = record.toObject()
+                    return {
+                        ...parsedRecord,
+                        allow_sync: false,
+                        ml_data: { ...record.ml_data, available_quantity: 0 }
+                    }
+                })
             } else {
                 updatedRecords = itemRecords.map(async record => {
                     const updatedRecord = await this.itemModel.findByIdAndUpdate(record._id, { $set: {
@@ -237,19 +200,28 @@ export default class ListService {
                     return updatedRecord
                 })
             }
-            
-            const resolvedRecords = await Promise.all(updatedRecords)
-            const updatedMLItems = await this.updateManyItems(currentUser, resolvedRecords)
+
+            let resolvedRecords = []
+            if(deleteItems) {
+                resolvedRecords = updatedRecords
+                this.logger.debug('Deleting - Our resolved records are: %o', resolvedRecords)
+            } else {
+                resolvedRecords = await Promise.all(updatedRecords)
+                this.logger.debug('Just publishing - Our resolved records are: %o', resolvedRecords)
+            }
+
+            const updatedMLItems = await this.UpdateManyItems(currentUser, resolvedRecords)
             if (deleteItems) {
                 await this.itemModel.deleteMany({ _id: { $in: idInput } })
             }
             return updatedMLItems
         } catch (error) {
+            this.logger.error('Error trying to unpublish items: %o', error)
             throw error
         }
     }
 
-    private async updateManyItems(currentUser: Partial<IUser>, itemRecords: IStagingItem[]): Promise<IMLItem[]> {
+    public async UpdateManyItems(currentUser: Partial<IUser>, itemRecords: IStagingItem[]): Promise<IMLItem[]> {
         try {
             const queuedItems = itemRecords.map(async record => {
                 const updated = await this.updateItem(currentUser, record)
@@ -258,11 +230,16 @@ export default class ListService {
 
             return Promise.all(queuedItems)
         } catch (error) {
+            this.logger.error('Error trying to update items: %o', error)
             throw error
         }
     }
 
-    private async updateItem(currentUser: Partial<IUser>, { ml_data, ml_id }: Partial<IStagingItem>): Promise<IMLItem> {
+    //////// Private methods ////////
+
+    private async addItem(currentUser: Partial<IUser>, itemInputDTO: IMLItemInputDTO): Promise<IMLItem> {
+        this.logger.debug('Adding item with input \n%o\n and user as \n%s\n', itemInputDTO, currentUser._id)
+        
         const {
             title,
             category_id,
@@ -275,15 +252,14 @@ export default class ListService {
             listing_type_id,
             description,
             video_id,
-            tags,
             sale_terms,
             pictures,
             attributes
-        } = ml_data
+        } = itemInputDTO
         
-        const requestMethod = 'put'
-        const requestConfig: AxiosRequestConfig = {
-            url: `/items/${ml_id}`,
+        const requestMethod = 'post'
+        let requestConfig: AxiosRequestConfig = {
+            url: '/items',
             method: requestMethod,
             baseURL: config.mlAPI.url,
             headers: {
@@ -301,17 +277,99 @@ export default class ListService {
                 listing_type_id,
                 description,
                 video_id,
-                tags,
                 sale_terms,
                 pictures,
                 attributes 
             } as IMLItemInputDTO
         }
-        
+
         try {
-            const response: { data: IMLItem } = await this.axios(requestConfig)
+            const response = await this.axios(requestConfig)
             return response.data
         } catch (error) {
+            this.logger.error('Error in method ListService.addItem: %o', error)
+            throw error
+        }
+    }
+
+    private async addManyItems(currentUser: Partial<IUser>, itemRecords: IStagingItem[]): Promise<IMLItem[]> {
+        try {
+            const queuedItems = itemRecords.map(async record => {
+                const published = await this.addItem(currentUser, record.ml_data)
+                if (published) {
+                    await this.itemModel.findByIdAndUpdate(record._id, { $set: {
+                        ml_id: published.id
+                    } })
+                }
+                return published
+            })
+
+            return Promise.all(queuedItems)
+        } catch (error) {
+            throw error
+        }
+    }
+
+    private async updateItem(currentUser: Partial<IUser>, { ml_data, ml_id }: Partial<IStagingItem>): Promise<IMLItem> {
+        this.logger.debug('Updating item %s', ml_id)
+        
+        const {
+            title,
+            category_id,
+            price,
+            official_store_id,
+            currency_id,
+            available_quantity,
+            buying_mode,
+            condition,
+            description,
+            video_id,
+            sale_terms,
+            pictures,
+            attributes
+        } = ml_data
+        
+        const requestMethod = 'put'
+        const itemRequestConfig: AxiosRequestConfig = {
+            url: `/items/${ml_id}`,
+            method: requestMethod,
+            baseURL: config.mlAPI.url,
+            headers: {
+                'Authorization': `Bearer ${currentUser.config.ml_token.access_token}`,
+            },
+            data: {
+                title,
+                category_id,
+                price,
+                official_store_id,
+                currency_id,
+                available_quantity,
+                buying_mode,
+                condition,
+                video_id,
+                sale_terms,
+                pictures,
+                attributes 
+            } as IMLItemInputDTO
+        }
+
+        const descriptionRequestConfig: AxiosRequestConfig = {
+            url: `/items/${ml_id}/description?api_version=2`,
+            method: requestMethod,
+            baseURL: config.mlAPI.url,
+            headers: {
+                'Authorization': `Bearer ${currentUser.config.ml_token.access_token}`,
+                'Content-Type': 'application/json'
+            },
+            data: description
+        }
+        
+        try {
+            await this.axios(descriptionRequestConfig)
+            const response: { data: IMLItem } = await this.axios(itemRequestConfig)
+            return response.data
+        } catch (error) {
+            this.logger.error('Error trying to update this item: %o', error)
             throw error
         }
     }

@@ -15,7 +15,7 @@ import {
     CustomParametersType,
     CustomSaleTermsInputType,
     DeletedItemsInfoType,
-    StagedItemSyncInfoType,
+    UpdatedItemsInfoType,
     StagedItemType
 } from './types'
 
@@ -24,8 +24,10 @@ import {
 } from '../amazon/types'
 
 import {
-    ItemDataOptionalInputType
+    ItemDataOptionalInputType, ItemType
 } from '../ml/types'
+import SynchronizerService from '../../../services/synchronizer'
+import ListService from '../../../services/mercado-libre/list'
 
 const StageMutationType = new GraphQLObjectType ({
     name: 'StageMutationType',
@@ -85,7 +87,8 @@ const StageMutationType = new GraphQLObjectType ({
                 item_condition: { type: GraphQLString },
                 listing_type_id: { type: GraphQLString },
                 sale_terms: { type: new GraphQLList(CustomSaleTermsInputType) },
-                local_currency_code: { type: GraphQLString }
+                local_currency_code: { type: GraphQLString },
+                sync_concurrency_in_hours: { type: GraphQLInt }
             },
             async resolve(parentObj, args, context) {
                 const stagingServiceInstance = Container.get(StagingService)
@@ -94,25 +97,44 @@ const StageMutationType = new GraphQLObjectType ({
             }
         },
         turnItemsSyncOn: {
-            type: new GraphQLList(StagedItemSyncInfoType),
+            type: UpdatedItemsInfoType,
             args: {
                 ids: { type: new GraphQLNonNull(new GraphQLList(GraphQLString)) }
             },
             async resolve(parentObj, args) {
                 const stagingServiceInstance = Container.get(StagingService)
-                const syncItems = stagingServiceInstance.switchItemsSyncState(args.ids, true)
+                const syncItems = stagingServiceInstance.SwitchItemsSyncState(args.ids, true)
                 return syncItems
             }
         },
         turnItemsSyncOff: {
-            type: new GraphQLList(StagedItemSyncInfoType),
+            type: UpdatedItemsInfoType,
             args: {
                 ids: { type: new GraphQLNonNull(new GraphQLList(GraphQLString)) }
             },
             async resolve(parentObj, args) {
                 const stagingServiceInstance = Container.get(StagingService)
-                const unsyncItems = stagingServiceInstance.switchItemsSyncState(args.ids, false)
+                const unsyncItems = stagingServiceInstance.SwitchItemsSyncState(args.ids, false)
                 return unsyncItems
+            }
+        },
+        syncManuallyByID: {
+            type: new GraphQLList(ItemType),
+            args: {
+                ids: { type: new GraphQLNonNull(new GraphQLList(GraphQLString)) }
+            },
+            async resolve(parentObj, args, context) {
+                const synchronizerServiceInstance = Container.get(SynchronizerService)
+                const updatedRecords = await synchronizerServiceInstance.SyncItemsById(context.currentUser, args.ids)
+
+                if (updatedRecords.length > 0) {
+                    const stagingServiceInstance = Container.get(StagingService)
+                    const restagedItems = await stagingServiceInstance.RestageItems(context.currentUser, updatedRecords)
+
+                    const listServiceInstance = Container.get(ListService)
+                    const republishedItems = await listServiceInstance.UpdateManyItems(context.currentUser, restagedItems)
+                    return republishedItems
+                } else return []
             }
         }
     }

@@ -31,11 +31,12 @@ const StagedItemType = new GraphQLObjectType({
     }
 })
 
-const StagedItemSyncInfoType = new GraphQLObjectType({
-    name: 'StagedItemSyncInfoType',
+const UpdatedItemsInfoType = new GraphQLObjectType({
+    name: 'UpdatedItemsInfoType',
     fields: {
-        _id: { type: GraphQLString },
-        allow_sync: { type: GraphQLBoolean },
+        ok: { type: GraphQLInt },
+        n: { type: GraphQLInt },
+        nModified: { type: GraphQLInt }
     }
 })
 
@@ -74,13 +75,14 @@ const CustomParametersType = new GraphQLObjectType({
         item_condition: { type: GraphQLString },
         listing_type_id: { type: GraphQLString },
         sale_terms: { type: new GraphQLList(CustomSaleTermsType) },
-        local_currency_code: { type: GraphQLString }
+        local_currency_code: { type: GraphQLString },
+        sync_concurrency_in_hours: { type: GraphQLInt }
     }
 })
 
 export {
     StagedItemType,
-    StagedItemSyncInfoType,
+    UpdatedItemsInfoType,
     DeletedItemsInfoType,
     CustomParametersType,
     CustomSaleTermsInputType

@@ -12,6 +12,7 @@ export interface ICustomParameters {
         value_name: string
     }[]
     local_currency_code: string
+    sync_concurrency_in_hours: number
 }
 
 export interface IUser {
@@ -29,6 +30,7 @@ export interface IUser {
         ml_token: IMLToken
         ml_access_date: Date
         rapidapi_key: string
+        last_item_sync_date: Date
     }
     custom_parameters?: ICustomParameters
     ml_account?: any
@@ -41,4 +43,10 @@ export interface IUserInputDTO {
     name: string
     email: string
     password: string
+}
+
+export interface IUserConfigStatus {
+    configuration_complete: boolean
+    mercado_libre_authorization: boolean
+    rapidapi_key_added: boolean
 }

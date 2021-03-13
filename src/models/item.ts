@@ -137,10 +137,6 @@ const Item = new mongoose.Schema(
                 default: 'YOUTUBE_ID_HERE'
             },
 
-            tags: {
-                type: [String]
-            },
-
             sale_terms: {
                 type: [{
                     id: {

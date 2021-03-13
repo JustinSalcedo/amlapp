@@ -17,3 +17,9 @@ export interface IItemDeletedInformation {
     n: number
     deletedCount: number
 }
+
+export interface IItemUpdatedInformation {
+    ok: number,
+    n: number,
+    nModified: number
+}
