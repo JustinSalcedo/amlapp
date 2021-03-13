@@ -7,8 +7,9 @@
   },
   "main": "src/app.ts",
   "scripts": {
+    "start": "ts-node src/app.ts",
     "build": "tsc",
-    "start": "nodemon",
+    "dev": "nodemon",
     "inspect": "nodemon --inspect src/app.ts",
     "launch": "node build/app.js"
   },

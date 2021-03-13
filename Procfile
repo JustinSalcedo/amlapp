@@ -1,1 +1,1 @@
-web: npm run launch
+web: ts-node/src/app.ts
