@@ -394,7 +394,7 @@ export default class StagingService {
     private async matchCategory(amazonProductTitle: string) : Promise<IMLPredictedCategory | boolean> {
         const requestMethod = 'get'
         const requestConfig: AxiosRequestConfig = {
-            url: `/sites/MCO/domain_discovery/search?q=${encodeURIComponent(amazonProductTitle)}`,
+            url: `/sites/MLM/domain_discovery/search?q=${encodeURIComponent(amazonProductTitle)}`,
             method: requestMethod,
             baseURL: config.mlAPI.url
         }
@@ -430,7 +430,8 @@ export default class StagingService {
     }
 
     private isAllowedCategory(category: string): boolean {
-        return this.allowedCategories.category_ids.includes(category)
+        // return this.allowedCategories.category_ids.includes(category)
+        return category.slice(0, 3) === "MLM"
     }
 
     private cutProductTitle(productTitle: string): string {

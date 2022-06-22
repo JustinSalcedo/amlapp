@@ -145,7 +145,7 @@ const User = new mongoose.Schema(
                 value_name: '90 días'
               }
             ],
-            local_currency_code: 'COP',
+            local_currency_code: 'MXN',
             sync_concurrency_in_hours: 24
           }
         },
