@@ -378,7 +378,7 @@ Now just head up to your ML account and get ready to start selling! 😃
 
 ## Resources
 
-A give credit to these technologies and providers that made this project possible:
+I give credit to these technologies and providers that made this project possible:
 
 - [Node.js](https://nodejs.org/en/) (server)
 - [GraphQL](https://graphql.org/) (API query language)
