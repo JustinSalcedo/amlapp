@@ -23,10 +23,7 @@ export default class StagingService {
         @Inject('itemModel') private itemModel: Models.ItemModel,
         @Inject('userModel') private userModel: Models.UserModel,
         @EventDispatcher() private eventDispatcher
-    ) {
-        let rawData = readFileSync(__dirname + '/CATEGORY_IDS.json').toString()
-        this.allowedCategories = JSON.parse(rawData)
-    }
+    ) {}
 
     public async GetItemsByID(idInput: string[]): Promise<IStagingItem[]> {
         try {
@@ -238,7 +235,7 @@ export default class StagingService {
 
     public GetAllowedCategoriesIds(): string[] {
         try {
-            return this.allowedCategories.category_ids
+            return []
         } catch (error) {
             throw error
         }
